@@ -51,12 +51,14 @@ typedef struct {
 #define NN_OUTPUT(nn) (nn).as[(nn).count]
 
 NN nn_alloc(size_t *arch, size_t arch_count);
+void nn_zero(NN nn);
 void nn_print(NN nn, const char *name);
 #define NN_PRINT(nn) nn_print(nn, #nn);
 void nn_rand(NN nn, float low, float high);
 void nn_forward(NN nn);
 float nn_cost(NN nn, Mat ti, Mat to);
 void nn_finite_diff(NN nn, NN g, float eps, Mat ti, Mat to);
+void nn_backprop(NN nn, NN g, Mat ti, Mat to);
 void nn_learn(NN nn, NN g, float rate);
 
 #endif // NN_H_
@@ -200,6 +202,16 @@ NN nn_alloc(size_t *arch, size_t arch_count)
     return nn;
 }
 
+void nn_zero(NN nn)
+{
+    for (size_t i = 0; i < nn.count; ++i) {
+        mat_fill(nn.ws[i], 0);
+        mat_fill(nn.bs[i], 0);
+        mat_fill(nn.as[i], 0);
+    }
+    mat_fill(nn.as[nn.count], 0);
+}
+
 void nn_print(NN nn, const char *name)
 {
     char buf[256];
@@ -251,6 +263,62 @@ float nn_cost(NN nn, Mat ti, Mat to)
     }
 
     return c/n;
+}
+
+void nn_backprop(NN nn, NN g, Mat ti, Mat to)
+{
+    NN_ASSERT(ti.rows == to.rows);
+    size_t n = ti.rows;
+    NN_ASSERT(NN_OUTPUT(nn).cols == to.cols);
+
+    nn_zero(g);
+
+    // i - current sample
+    // l - current layer
+    // j - current activation
+    // k - previous activation
+
+    for (size_t i = 0; i < n; ++i) {
+        mat_copy(NN_INPUT(nn), mat_row(ti, i));
+        nn_forward(nn);
+
+        for (size_t j = 0; j <= nn.count; ++j) {
+            mat_fill(g.as[j], 0);
+        }
+
+        for (size_t j = 0; j < to.cols; ++j) {
+            MAT_AT(NN_OUTPUT(g), 0, j) = MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(to, i, j);
+        }
+
+        for (size_t l = nn.count; l > 0; --l) {
+            for (size_t j = 0; j < nn.as[l].cols; ++j) {
+                float a = MAT_AT(nn.as[l], 0, j);
+                float da = MAT_AT(g.as[l], 0, j);
+                MAT_AT(g.bs[l-1], 0, j) += 2*da*a*(1 - a);
+                for (size_t k = 0; k < nn.as[l-1].cols; ++k) {
+                    // j - weight matrix col
+                    // k - weight matrix row
+                    float pa = MAT_AT(nn.as[l-1], 0, k);
+                    float w = MAT_AT(nn.ws[l-1], k, j);
+                    MAT_AT(g.ws[l-1], k, j) += 2*da*a*(1 - a)*pa;
+                    MAT_AT(g.as[l-1], 0, k) += 2*da*a*(1 - a)*w;
+                }
+            }
+        }
+    }
+
+    for (size_t i = 0; i < g.count; ++i) {
+        for (size_t j = 0; j < g.ws[i].rows; ++j) {
+            for (size_t k = 0; k < g.ws[i].cols; ++k) {
+                MAT_AT(g.ws[i], j, k) /= n;
+            }
+        }
+        for (size_t j = 0; j < g.bs[i].rows; ++j) {
+            for (size_t k = 0; k < g.bs[i].cols; ++k) {
+                MAT_AT(g.bs[i], j, k) /= n;
+            }
+        }
+    }
 }
 
 void nn_finite_diff(NN nn, NN g, float eps, Mat ti, Mat to)
