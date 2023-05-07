@@ -92,7 +92,7 @@ void mat_dot(Mat dst, Mat a, Mat b)
     size_t n = a.cols;
     NN_ASSERT(dst.rows == a.rows);
     NN_ASSERT(dst.cols == b.cols);
-    
+
     for (size_t i = 0; i < dst.rows; ++i) {
         for (size_t j = 0; j < dst.cols; ++j) {
             MAT_AT(dst, i, j) = 0;
@@ -361,7 +361,7 @@ void nn_learn(NN nn, NN g, float rate)
                 MAT_AT(nn.bs[i], j, k) -= rate*MAT_AT(g.bs[i], j, k);
             }
         }
-    }    
+    }
 }
 
 #endif // NN_IMPLEMENTATION
