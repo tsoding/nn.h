@@ -5,6 +5,7 @@ Simple stb-style head-only library for Neural Networks. Created for educational 
 ## Quick Start
 
 ```console
-$ clang -o xor xor.c -lm
-$ ./xor
+$ ./build.sh
+$ ./adder_gen
+$ ./gym ./adder.arch ./adder.mat
 ```
