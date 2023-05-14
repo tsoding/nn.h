@@ -195,10 +195,15 @@ int main(int argc, char **argv)
 
     size_t epoch = 0;
     size_t max_epoch = 10000;
-    bool paused = false;
+    bool paused = true;
     while (!WindowShouldClose()) {
         if (IsKeyPressed(KEY_SPACE)) {
             paused = !paused;
+        }
+        if (IsKeyPressed(KEY_R)) {
+            epoch = 0;
+            nn_rand(nn, 0, 1);
+            plot.count = 0;
         }
 
         for (size_t i = 0; i < 10 && !paused && epoch < max_epoch; ++i) {

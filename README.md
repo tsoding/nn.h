@@ -21,3 +21,4 @@ Gym is a separate GUI app that uses nn.h to pre-train Neural Networks.
 |Keys|Description|
 |---|---|
 |<kbd>SPACE</kbd>|Toggle pause|
+|<kbd>r</kbd>|Restart the training|
