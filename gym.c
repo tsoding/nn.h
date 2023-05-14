@@ -14,9 +14,9 @@
 
 typedef int Errno;
 
-#define IMG_FACTOR 80
-#define IMG_WIDTH (16*IMG_FACTOR)
-#define IMG_HEIGHT (9*IMG_FACTOR)
+#define WINDOW_FACTOR 80
+#define WINDOW_WIDTH (16*WINDOW_FACTOR)
+#define WINDOW_HEIGHT (9*WINDOW_FACTOR)
 
 typedef struct {
     size_t *items;
@@ -188,14 +188,13 @@ int main(int argc, char **argv)
     float rate = 0.5;
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(IMG_WIDTH, IMG_HEIGHT, "gym");
-    // SetWindowState(FLAG_WINDOW_RESIZABLE);
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "gym");
     SetTargetFPS(60);
 
     Cost_Plot plot = {0};
 
     size_t epoch = 0;
-    size_t max_epoch = 5000;
+    size_t max_epoch = 10000;
     while (!WindowShouldClose()) {
         for (size_t i = 0; i < 10 && epoch < max_epoch; ++i) {
             if (epoch < max_epoch) {
@@ -227,7 +226,7 @@ int main(int argc, char **argv)
             nn_render_raylib(nn, rx, ry, rw, rh);
 
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f", epoch, max_epoch, rate);
+            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, nn_cost(nn, ti, to));
             DrawText(buffer, 0, 0, h*0.04, WHITE);
         }
         EndDrawing();
