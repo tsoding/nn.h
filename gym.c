@@ -56,7 +56,7 @@ void nn_render_raylib(NN nn, int rx, int ry, int rw, int rh)
     Color low_color        = {0xFF, 0x00, 0xFF, 0xFF};
     Color high_color       = {0x00, 0xFF, 0x00, 0xFF};
 
-    float neuron_radius = rh*0.04;
+    float neuron_radius = rh*0.03;
     int layer_border_vpad = 50;
     int layer_border_hpad = 50;
     int nn_width = rw - 2*layer_border_hpad;
@@ -195,8 +195,13 @@ int main(int argc, char **argv)
 
     size_t epoch = 0;
     size_t max_epoch = 10000;
+    bool paused = false;
     while (!WindowShouldClose()) {
-        for (size_t i = 0; i < 10 && epoch < max_epoch; ++i) {
+        if (IsKeyPressed(KEY_SPACE)) {
+            paused = !paused;
+        }
+
+        for (size_t i = 0; i < 10 && !paused && epoch < max_epoch; ++i) {
             if (epoch < max_epoch) {
                 nn_backprop(nn, g, ti, to);
                 nn_learn(nn, g, rate);
