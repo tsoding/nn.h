@@ -51,30 +51,30 @@ char *args_shift(int *argc, char ***argv)
     return result;
 }
 
-void nn_render_raylib(NN nn, int rx, int ry, int rw, int rh)
+void nn_render_raylib(NN nn, float rx, float ry, float rw, float rh)
 {
     Color low_color        = {0xFF, 0x00, 0xFF, 0xFF};
     Color high_color       = {0x00, 0xFF, 0x00, 0xFF};
 
     float neuron_radius = rh*0.03;
-    int layer_border_vpad = 50;
-    int layer_border_hpad = 50;
-    int nn_width = rw - 2*layer_border_hpad;
-    int nn_height = rh - 2*layer_border_vpad;
-    int nn_x = rx + rw/2 - nn_width/2;
-    int nn_y = ry + rh/2 - nn_height/2;
+    float layer_border_vpad = rh*0.08;
+    float layer_border_hpad = rw*0.06;
+    float nn_width = rw - 2*layer_border_hpad;
+    float nn_height = rh - 2*layer_border_vpad;
+    float nn_x = rx + rw/2 - nn_width/2;
+    float nn_y = ry + rh/2 - nn_height/2;
     size_t arch_count = nn.count + 1;
-    int layer_hpad = nn_width / arch_count;
+    float layer_hpad = nn_width / arch_count;
     for (size_t l = 0; l < arch_count; ++l) {
-        int layer_vpad1 = nn_height / nn.as[l].cols;
+        float layer_vpad1 = nn_height / nn.as[l].cols;
         for (size_t i = 0; i < nn.as[l].cols; ++i) {
-            int cx1 = nn_x + l*layer_hpad + layer_hpad/2;
-            int cy1 = nn_y + i*layer_vpad1 + layer_vpad1/2;
+            float cx1 = nn_x + l*layer_hpad + layer_hpad/2;
+            float cy1 = nn_y + i*layer_vpad1 + layer_vpad1/2;
             if (l+1 < arch_count) {
-                int layer_vpad2 = nn_height / nn.as[l+1].cols;
+                float layer_vpad2 = nn_height / nn.as[l+1].cols;
                 for (size_t j = 0; j < nn.as[l+1].cols; ++j) {
-                    int cx2 = nn_x + (l+1)*layer_hpad + layer_hpad/2;
-                    int cy2 = nn_y + j*layer_vpad2 + layer_vpad2/2;
+                    float cx2 = nn_x + (l+1)*layer_hpad + layer_hpad/2;
+                    float cy2 = nn_y + j*layer_vpad2 + layer_vpad2/2;
                     float value = sigmoidf(MAT_AT(nn.ws[l], j, i));
                     high_color.a = floorf(255.f*value);
                     float thick = rh*0.004f;
@@ -182,10 +182,10 @@ int main(int argc, char **argv)
 
     NN nn = nn_alloc(arch.items, arch.count);
     NN g = nn_alloc(arch.items, arch.count);
-    nn_rand(nn, 0, 1);
+    nn_rand(nn, -1, 1);
     NN_PRINT(nn);
 
-    float rate = 0.5;
+    float rate = 1;
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "gym");
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
         }
         if (IsKeyPressed(KEY_R)) {
             epoch = 0;
-            nn_rand(nn, 0, 1);
+            nn_rand(nn, -1, 1);
             plot.count = 0;
         }
 
