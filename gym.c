@@ -73,9 +73,11 @@ void nn_render_raylib(NN nn, float rx, float ry, float rw, float rh)
             if (l+1 < arch_count) {
                 float layer_vpad2 = nn_height / nn.as[l+1].cols;
                 for (size_t j = 0; j < nn.as[l+1].cols; ++j) {
+                    // i - rows of ws
+                    // j - cols of ws
                     float cx2 = nn_x + (l+1)*layer_hpad + layer_hpad/2;
                     float cy2 = nn_y + j*layer_vpad2 + layer_vpad2/2;
-                    float value = sigmoidf(MAT_AT(nn.ws[l], j, i));
+                    float value = sigmoidf(MAT_AT(nn.ws[l], i, j));
                     high_color.a = floorf(255.f*value);
                     float thick = rh*0.004f;
                     Vector2 start = {cx1, cy1};
