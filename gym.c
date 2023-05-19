@@ -95,20 +95,14 @@ void nn_render_raylib(NN nn, float rx, float ry, float rw, float rh)
     }
 }
 
-void cost_plot_minmax(Cost_Plot plot, float *min, float *max)
-{
-    *min = FLT_MAX;
-    *max = FLT_MIN;
-    for (size_t i = 0; i < plot.count; ++i) {
-        if (*max < plot.items[i]) *max = plot.items[i];
-        if (*min > plot.items[i]) *min = plot.items[i];
-    }
-}
-
 void plot_cost(Cost_Plot plot, int rx, int ry, int rw, int rh)
 {
-    float min, max;
-    cost_plot_minmax(plot, &min, &max);
+    float min = FLT_MAX, max = FLT_MIN;
+    for (size_t i = 0; i < plot.count; ++i) {
+        if (max < plot.items[i]) max = plot.items[i];
+        if (min > plot.items[i]) min = plot.items[i];
+    }
+
     if (min > 0) min = 0;
     size_t n = plot.count;
     if (n < 1000) n = 1000;
@@ -119,6 +113,10 @@ void plot_cost(Cost_Plot plot, int rx, int ry, int rw, int rh)
         float y2 = ry + (1 - (plot.items[i+1] - min)/(max - min))*rh;
         DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, rh*0.005, RED);
     }
+
+    float y0 = ry + (1 - (0 - min)/(max - min))*rh;
+    DrawLineEx((Vector2){rx + 0, y0}, (Vector2){rx + rw - 1, y0}, rh*0.005, WHITE);
+    DrawText("0", rx + 0, y0 - rh*0.04, rh*0.04, WHITE);
 }
 
 int main(int argc, char **argv)
