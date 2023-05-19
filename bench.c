@@ -1,3 +1,13 @@
+/// Author: asakhar
+/// Description: 
+///  I basically changed the order of iteration
+///  in matrix multiplication to make it more
+///  cache friendly. Here are the benchmarks and test.
+///  
+///  GCC with -O3 gave me 7x improvement (~0.021s -> ~0.003s)
+///  MSVC with /O2 has a little bit less difference but never the less: 
+///    2x improved (~0.021s -> ~0.01s)
+
 #define NN_IMPLEMENTATION
 #include "nn.h"
 #include <time.h>
@@ -14,7 +24,7 @@ void test_against(Mat a, Mat b, DotFunc reference, DotFunc to_test);
 
 int main(void)
 {
-  /// setup
+  // setup
   size_t R = 300;
   size_t K = 200;
   size_t C = 400;
@@ -24,8 +34,11 @@ int main(void)
   mat_rand(a, 0, 1);
   mat_rand(b, 0, 1);
 
+  // actual benches
   bench(dst, a, b, mat_dot_old, "old");
   bench(dst, a, b, mat_dot, "new");
+  
+  // testing
   test_against(a, b, mat_dot_old, mat_dot);
 }
 
@@ -40,13 +53,15 @@ void bench(Mat dst, Mat a, Mat b, DotFunc func, char const *name)
     end = (double)clock() / CLOCKS_PER_SEC;
   }
   printf("Running bench %s...\n", name);
-  start = (double)clock() / CLOCKS_PER_SEC;
+  double total_time = 0;
   for (size_t i = 0; i < ITERS; ++i)
   {
+    start = (double)clock() / CLOCKS_PER_SEC;
     func(dst, a, b);
+    end = (double)clock() / CLOCKS_PER_SEC;
+    total_time += end-start;
   }
-  end = (double)clock() / CLOCKS_PER_SEC;
-  printf("%s solution took: %fs to process\n", name, end - start);
+  printf("%s solution took: %fs to process in average among %d iterations\n", name, total_time/(double)ITERS, ITERS);
 }
 
 void mat_dot_old(Mat dst, Mat a, Mat b)
