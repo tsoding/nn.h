@@ -10,6 +10,7 @@ void mat_dot_old(Mat dst, Mat a, Mat b);
 
 typedef void (*DotFunc)(Mat, Mat, Mat);
 void bench(Mat dst, Mat a, Mat b, DotFunc func, char const *name);
+void test_against(Mat a, Mat b, DotFunc reference, DotFunc to_test);
 
 int main(void)
 {
@@ -25,6 +26,7 @@ int main(void)
 
   bench(dst, a, b, mat_dot_old, "old");
   bench(dst, a, b, mat_dot, "new");
+  test_against(a, b, mat_dot_old, mat_dot);
 }
 
 void bench(Mat dst, Mat a, Mat b, DotFunc func, char const *name)
@@ -62,4 +64,19 @@ void mat_dot_old(Mat dst, Mat a, Mat b)
             }
         }
     }
+}
+
+void test_against(Mat a, Mat b, DotFunc reference, DotFunc to_test) {
+  Mat reference_res = mat_alloc(a.rows, b.cols);
+  Mat test_res = mat_alloc(a.rows, b.cols);
+  reference(reference_res, a, b);
+  to_test(test_res, a, b);
+  size_t total = reference_res.rows * reference_res.cols;
+  for(size_t i = 0; i < total; ++i) {
+    if(reference_res.es[i] != test_res.es[i]) {
+      fputs("Matrices did not match", stderr);
+      return;
+    }
+  }
+  puts("Matrices are equal");
 }
