@@ -219,20 +219,16 @@ int main(int argc, char **argv)
         Color background_color = {0x18, 0x18, 0x18, 0xFF};
         ClearBackground(background_color);
         {
-            int rw, rh, rx, ry;
             int w = GetRenderWidth();
             int h = GetRenderHeight();
 
-            rw = w/2;
-            rh = h*2/3;
-            rx = 0;
-            ry = h/2 - rh/2;
-            plot_cost(plot, rx, ry, rw, rh);
+            int rw = w/2;
+            int rh = h*2/3;
+            int rx = 0;
+            int ry = h/2 - rh/2;
 
-            rw = w/2;
-            rh = h*2/3;
-            rx = w - rw;
-            ry = h/2 - rh/2;
+            plot_cost(plot, rx, ry, rw, rh);
+            rx += rw;
             nn_render_raylib(nn, rx, ry, rw, rh);
 
             char buffer[256];
