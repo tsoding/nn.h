@@ -162,7 +162,6 @@ int main(int argc, char **argv)
     Mat t = mat_load(in);
     fclose(in);
 
-    // TODO: can we have NN with just input?
     NN_ASSERT(arch.count > 1);
     size_t ins_sz = arch.items[0];
     size_t outs_sz = arch.items[arch.count-1];
