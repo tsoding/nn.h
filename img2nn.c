@@ -54,22 +54,7 @@ int main(int argc, char **argv)
             MAT_AT(t, i, 2) = img_pixels[i]/255.f;
         }
     }
-
-    Mat ti = {
-        .rows = t.rows,
-        .cols = 2,
-        .stride = t.stride,
-        .es = &MAT_AT(t, 0, 0),
-    };
-    Mat to = {
-        .rows = t.rows,
-        .cols = 1,
-        .stride = t.stride,
-        .es = &MAT_AT(t, 0, ti.cols),
-    };
-
-    // MAT_PRINT(ti);
-    // MAT_PRINT(to);
+    mat_shuffle_rows(t);
 
     size_t arch[] = {2, 7, 7, 1};
     NN nn = nn_alloc(arch, ARRAY_LEN(arch));
@@ -100,9 +85,14 @@ int main(int argc, char **argv)
 
     size_t epoch = 0;
     size_t max_epoch = 100*1000;
-    size_t epochs_per_frame = 103;
+    size_t batches_per_frame = 200;
+    size_t batch_size = 28;
+    size_t batch_count = (t.rows + batch_size - 1)/batch_size;
+    size_t batch_begin = 0;
+    float average_cost = 0.0f;
     float rate = 1.0f;
     bool paused = true;
+
     while (!WindowShouldClose()) {
         if (IsKeyPressed(KEY_SPACE)) {
             paused = !paused;
@@ -113,11 +103,37 @@ int main(int argc, char **argv)
             plot.count = 0;
         }
 
-        for (size_t i = 0; i < epochs_per_frame && !paused && epoch < max_epoch; ++i) {
-            nn_backprop(nn, g, ti, to);
+        for (size_t i = 0; i < batches_per_frame && !paused && epoch < max_epoch; ++i) {
+            size_t size = batch_size;
+            if (batch_begin + batch_size >= t.rows)  {
+                size = t.rows - batch_begin;
+            }
+
+            Mat batch_ti = {
+                .rows = size,
+                .cols = 2,
+                .stride = t.stride,
+                .es = &MAT_AT(t, batch_begin, 0),
+            };
+
+            Mat batch_to = {
+                .rows = size,
+                .cols = 1,
+                .stride = t.stride,
+                .es = &MAT_AT(t, batch_begin, batch_ti.cols),
+            };
+
+            nn_backprop(nn, g, batch_ti, batch_to);
             nn_learn(nn, g, rate);
-            epoch += 1;
-            da_append(&plot, nn_cost(nn, ti, to));
+            average_cost += nn_cost(nn, batch_ti, batch_to);
+            batch_begin += batch_size;
+
+            if (batch_begin >= t.rows) {
+                epoch += 1;
+                da_append(&plot, average_cost/batch_count);
+                average_cost = 0.0f;
+                batch_begin = 0;
+            }
         }
 
         BeginDrawing();
@@ -154,7 +170,7 @@ int main(int argc, char **argv)
             DrawTextureEx(original_texture, CLITERAL(Vector2) { rx, ry + img_height*scale }, 0, scale, WHITE);
 
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, nn_cost(nn, ti, to));
+            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, plot.count > 0 ? plot.items[plot.count - 1] : 0);
             DrawText(buffer, 0, 0, h*0.04, WHITE);
         }
         EndDrawing();

@@ -42,6 +42,7 @@ void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
 void mat_sig(Mat m);
 void mat_print(Mat m, const char *name, size_t padding);
+void mat_shuffle_rows(Mat m);
 #define MAT_PRINT(m) mat_print(m, #m, 0)
 
 typedef struct {
@@ -426,6 +427,20 @@ void nn_learn(NN nn, NN g, float rate)
                 MAT_AT(nn.bs[i], j, k) -= rate*MAT_AT(g.bs[i], j, k);
             }
         }
+    }
+}
+
+void mat_shuffle_rows(Mat m)
+{
+    for (size_t i = 0; i < m.rows; ++i) {
+         size_t j = i + rand()%(m.rows - i);
+         if (i != j) {
+             for (size_t k = 0; k < m.cols; ++k) {
+                 float t = MAT_AT(m, i, k);
+                 MAT_AT(m, i, k) = MAT_AT(m, j, k);
+                 MAT_AT(m, j, k) = t;
+             }
+         }
     }
 }
 
