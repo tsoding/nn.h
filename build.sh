@@ -2,7 +2,7 @@
 
 set -xe
 
-CFLAGS="-O3 -Wall -Wextra"
+CFLAGS="-O3 -Wall -Wextra -I./thirdparty/"
 LIBS="-lm"
 
 clang $CFLAGS -o adder_gen adder_gen.c $LIBS
