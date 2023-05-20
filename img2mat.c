@@ -156,7 +156,7 @@ int main(int argc, char **argv)
     // MAT_PRINT(ti);
     // MAT_PRINT(to);
 
-    size_t arch[] = {2, 7, 4, 1};
+    size_t arch[] = {2, 7, 5, 1};
     NN nn = nn_alloc(arch, ARRAY_LEN(arch));
     NN g = nn_alloc(arch, ARRAY_LEN(arch));
     nn_rand(nn, -1, 1);
@@ -173,6 +173,15 @@ int main(int argc, char **argv)
 
     Image preview_image = GenImageColor(img_width, img_height, BLACK);
     Texture2D preview_texture = LoadTextureFromImage(preview_image);
+
+    Image original_image = GenImageColor(img_width, img_height, BLACK);
+    for (size_t y = 0; y < (size_t) img_height; ++y) {
+        for (size_t x = 0; x < (size_t) img_width; ++x) {
+            uint8_t pixel = img_pixels[y*img_width + x];
+            ImageDrawPixel(&original_image, x, y, CLITERAL(Color) { pixel, pixel, pixel, 255 });
+        }
+    }
+    Texture2D original_texture = LoadTextureFromImage(original_image);
 
     size_t epoch = 0;
     size_t max_epoch = 100*1000;
@@ -213,7 +222,7 @@ int main(int argc, char **argv)
             nn_render_raylib(nn, rx, ry, rw, rh);
             rx += rw;
 
-            float scale = 15;
+            float scale = 10;
 
             for (size_t y = 0; y < (size_t) img_height; ++y) {
                 for (size_t x = 0; x < (size_t) img_width; ++x) {
@@ -227,6 +236,7 @@ int main(int argc, char **argv)
 
             UpdateTexture(preview_texture, preview_image.data);
             DrawTextureEx(preview_texture, CLITERAL(Vector2) { rx, ry }, 0, scale, WHITE);
+            DrawTextureEx(original_texture, CLITERAL(Vector2) { rx, ry + img_height*scale }, 0, scale, WHITE);
 
             char buffer[256];
             snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, nn_cost(nn, ti, to));
