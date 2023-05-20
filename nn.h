@@ -66,6 +66,7 @@ void nn_backprop(NN nn, NN g, Mat ti, Mat to);
 void nn_learn(NN nn, NN g, float rate);
 
 #ifdef NN_ENABLE_GYM
+#include <float.h>
 #include "raylib.h"
 
 typedef struct {
