@@ -21,7 +21,7 @@ char *args_shift(int *argc, char ***argv)
     return result;
 }
 
-size_t arch[] = {3, 7, 4, 1};
+size_t arch[] = {3, 9, 9, 5, 1};
 
 int main(int argc, char **argv)
 {
@@ -242,20 +242,20 @@ int main(int argc, char **argv)
             }
 
             UpdateTexture(preview_texture1, preview_image1.data);
-            DrawTextureEx(preview_texture1, CLITERAL(Vector2) { rx, ry }, 0, scale, WHITE);
-            DrawTextureEx(original_texture1, CLITERAL(Vector2) { rx, ry + img1_height*scale }, 0, scale, WHITE);
+            DrawTextureEx(preview_texture1, CLITERAL(Vector2) { rx, ry  + img1_height*scale }, 0, scale, WHITE);
+            DrawTextureEx(original_texture1, CLITERAL(Vector2) { rx, ry}, 0, scale, WHITE);
 
             UpdateTexture(preview_texture2, preview_image2.data);
-            DrawTextureEx(preview_texture2, CLITERAL(Vector2) { rx + img1_width*scale, ry }, 0, scale, WHITE);
-            DrawTextureEx(original_texture2, CLITERAL(Vector2) { rx + img1_width*scale, ry + img2_height*scale }, 0, scale, WHITE);
+            DrawTextureEx(preview_texture2, CLITERAL(Vector2) { rx + img1_width*scale, ry  + img2_height*scale }, 0, scale, WHITE);
+            DrawTextureEx(original_texture2, CLITERAL(Vector2) { rx + img1_width*scale, ry}, 0, scale, WHITE);
 
             UpdateTexture(preview_texture3, preview_image3.data);
-            DrawTextureEx(preview_texture3, CLITERAL(Vector2) { rx, ry + img2_height*scale*2 }, 0, scale, WHITE);
+            DrawTextureEx(preview_texture3, CLITERAL(Vector2) { rx, ry + img2_height*scale*2 }, 0, 2*scale, WHITE);
 
             {
                 float pad = rh*0.05;
                 Vector2 size = { img1_width*scale*2, rh*0.02 };
-                Vector2 position = { rx, ry + img2_height*scale*3 + pad };
+                Vector2 position = { rx, ry + img2_height*scale*4 + pad };
                 DrawRectangleV(position, size, WHITE);
                 float knob_radius = rh*0.03;
                 Vector2 knob_position = { rx + size.x*scroll, position.y + size.y*0.5f};
