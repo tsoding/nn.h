@@ -71,6 +71,12 @@ void nn_learn(NN nn, NN g, float rate);
 #include "raylib.h"
 
 typedef struct {
+    size_t begin;
+    float cost;
+    bool finished;
+} Gym_Batch;
+
+typedef struct {
     float *items;
     size_t count;
     size_t capacity;
@@ -90,6 +96,7 @@ typedef struct {
 
 void gym_render_nn(NN nn, float rx, float ry, float rw, float rh);
 void gym_plot(Plot plot, int rx, int ry, int rw, int rh);
+void gym_process_batch(Gym_Batch *gb, size_t batch_size, NN nn, NN g, Mat t, float rate);
 
 #endif // NN_ENABLE_GYM
 
@@ -513,6 +520,46 @@ void gym_plot(Plot plot, int rx, int ry, int rw, int rh)
     DrawLineEx((Vector2){rx + 0, y0}, (Vector2){rx + rw - 1, y0}, rh*0.005, WHITE);
     DrawText("0", rx + 0, y0 - rh*0.04, rh*0.04, WHITE);
 }
+
+void gym_process_batch(Gym_Batch *gb, size_t batch_size, NN nn, NN g, Mat t, float rate)
+{
+    if (gb->finished) {
+        gb->finished = false;
+        gb->begin = 0;
+        gb->cost = 0;
+    }
+
+    size_t size = batch_size;
+    if (gb->begin + batch_size >= t.rows)  {
+        size = t.rows - gb->begin;
+    }
+
+    Mat batch_ti = {
+        .rows = size,
+        .cols = NN_INPUT(nn).cols,
+        .stride = t.stride,
+        .es = &MAT_AT(t, gb->begin, 0),
+    };
+
+    Mat batch_to = {
+        .rows = size,
+        .cols = NN_OUTPUT(nn).cols,
+        .stride = t.stride,
+        .es = &MAT_AT(t, gb->begin, batch_ti.cols),
+    };
+
+    nn_backprop(nn, g, batch_ti, batch_to);
+    nn_learn(nn, g, rate);
+    gb->cost += nn_cost(nn, batch_ti, batch_to);
+    gb->begin += batch_size;
+
+    if (gb->begin >= t.rows) {
+        size_t batch_count = (t.rows + batch_size - 1)/batch_size;
+        gb->cost /= batch_count;
+        gb->finished = true;
+    }
+}
+
 #endif // NN_ENABLE_GYM
 
 #endif // NN_IMPLEMENTATION
