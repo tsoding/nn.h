@@ -8,7 +8,7 @@ Simple stb-style head-only library for Neural Networks. Created for educational 
 
 ```console
 $ ./build.sh
-$ ./img2nn ./mnist/training/8/10057.png
+$ ./img2nn ./mnist/training/8/10057.png ./mnist/training/6/10032.png
 ```
 
 ## Gym
