@@ -107,6 +107,8 @@ int main(int argc, char **argv)
     SetTargetFPS(60);
 
     Plot plot = {0};
+    Font font = LoadFontEx("./fonts/iosevka-regular.ttf", 72, NULL, 0);
+    SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
 
     size_t preview_width = 28;
     size_t preview_height = 28;
@@ -255,7 +257,7 @@ int main(int argc, char **argv)
 
             char buffer[256];
             snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, plot.count > 0 ? plot.items[plot.count - 1] : 0);
-            DrawText(buffer, 0, 0, h*0.04, WHITE);
+            DrawTextEx(font, buffer, CLITERAL(Vector2){}, h*0.04, 0, WHITE);
         }
         EndDrawing();
     }
