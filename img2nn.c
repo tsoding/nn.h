@@ -140,6 +140,11 @@ int main(int argc, char **argv)
     }
     Texture2D original_texture2 = LoadTextureFromImage(original_image2);
 
+    size_t out_width = 512;
+    size_t out_height = 512;
+    uint8_t *out_pixels = malloc(sizeof(*out_pixels)*out_width*out_height);
+    assert(out_pixels != NULL);
+
     Gym_Batch gb = {0};
 
     float scroll = 0.5f;
@@ -153,6 +158,26 @@ int main(int argc, char **argv)
             epoch = 0;
             nn_rand(nn, -1, 1);
             plot.count = 0;
+        }
+        if (IsKeyPressed(KEY_S)) {
+            for (size_t y = 0; y < out_height; ++y) {
+                for (size_t x = 0; x < out_width; ++x) {
+                    MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(out_width - 1);
+                    MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(out_height - 1);
+                    MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
+                    nn_forward(nn);
+                    uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0)*255.f;
+                    out_pixels[y*out_width + x] = pixel;
+                }
+            }
+
+            const char *out_file_path = "upscaled.png";
+            if (!stbi_write_png(out_file_path, out_width, out_height, 1, out_pixels, out_width*sizeof(*out_pixels))) {
+                fprintf(stderr, "ERROR: could not save image %s\n", out_file_path);
+                return 1;
+            }
+
+            printf("Generated %s from %s\n", out_file_path, img1_file_path);
         }
 
         for (size_t i = 0; i < batches_per_frame && !paused && epoch < max_epoch; ++i) {
@@ -281,30 +306,6 @@ int main(int argc, char **argv)
         }
         printf("\n");
     }
-
-    size_t out_width = 512;
-    size_t out_height = 512;
-    uint8_t *out_pixels = malloc(sizeof(*out_pixels)*out_width*out_height);
-    assert(out_pixels != NULL);
-
-    for (size_t y = 0; y < out_height; ++y) {
-        for (size_t x = 0; x < out_width; ++x) {
-            MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(out_width - 1);
-            MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(out_height - 1);
-            MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
-            nn_forward(nn);
-            uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0)*255.f;
-            out_pixels[y*out_width + x] = pixel;
-        }
-    }
-
-    const char *out_file_path = "upscaled.png";
-    if (!stbi_write_png(out_file_path, out_width, out_height, 1, out_pixels, out_width*sizeof(*out_pixels))) {
-        fprintf(stderr, "ERROR: could not save image %s\n", out_file_path);
-        return 1;
-    }
-
-    printf("Generated %s from %s\n", out_file_path, img1_file_path);
 
     return 0;
 }
