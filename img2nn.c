@@ -291,7 +291,7 @@ int main(int argc, char **argv)
         for (size_t x = 0; x < out_width; ++x) {
             MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(out_width - 1);
             MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(out_height - 1);
-            MAT_AT(NN_INPUT(nn), 0, 2) = 0.5f;
+            MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
             nn_forward(nn);
             uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0)*255.f;
             out_pixels[y*out_width + x] = pixel;
