@@ -35,8 +35,8 @@ char *args_shift(int *argc, char ***argv)
     return result;
 }
 
-#define out_width 256
-#define out_height 256
+#define out_width 1920
+#define out_height 1080
 uint32_t out_pixels[out_width*out_height];
 #define FPS 30
 #define STR2(x) #x
@@ -46,10 +46,25 @@ uint32_t out_pixels[out_width*out_height];
 
 void render_single_out_image(NN nn, float a)
 {
-    for (size_t y = 0; y < out_height; ++y) {
-        for (size_t x = 0; x < out_width; ++x) {
-            MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(out_width - 1);
-            MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(out_height - 1);
+    for (size_t i = 0; i < out_width*out_height; ++i) {
+        out_pixels[i] = 0xFF000000;
+    }
+
+    size_t px, py, size;
+    if (out_width > out_height) {
+        size = out_height;
+        px = out_width/2 - size/2;
+        py = 0;
+    } else {
+        size = out_width;
+        px = 0;
+        py = out_height/2 - size/2;
+    }
+
+    for (size_t y = 0; y < size; ++y) {
+        for (size_t x = 0; x < size; ++x) {
+            MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(size - 1);
+            MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(size - 1);
             MAT_AT(NN_INPUT(nn), 0, 2) = a;
             nn_forward(nn);
             float activation = MAT_AT(NN_OUTPUT(nn), 0, 0);
@@ -57,7 +72,7 @@ void render_single_out_image(NN nn, float a)
             if (activation > 1) activation = 1;
             uint32_t bright = activation*255.f;
             uint32_t pixel = 0xFF000000|bright|(bright<<8)|(bright<<16);
-            out_pixels[y*out_width + x] = pixel;
+            out_pixels[(py + y)*out_width + (px + x)] = pixel;
         }
     }
 }
@@ -83,7 +98,7 @@ int render_upscaled_video(NN nn, float duration, const char *out_file_path)
             return 1;
         }
         close(pipefd[WRITE_END]);
-        
+
         int ret = execlp("ffmpeg",
             "ffmpeg",
             "-loglevel", "verbose",
