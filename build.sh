@@ -2,8 +2,8 @@
 
 set -xe
 
-CFLAGS="-O3 -Wall -Wextra -I./thirdparty/"
-LIBS="-lm"
+CFLAGS="-O3 -Wall -Wextra -I./thirdparty/ `pkg-config --cflags raylib`"
+LIBS="-lm `pkg-config --libs raylib` -lglfw -ldl -lpthread"
 
 clang $CFLAGS -o adder_gen adder_gen.c $LIBS
 clang $CFLAGS `pkg-config --cflags raylib` -o xor xor.c $LIBS `pkg-config --libs raylib` -lglfw -ldl -lpthread

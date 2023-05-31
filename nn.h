@@ -64,11 +64,13 @@ void nn_forward(NN nn);
 float nn_cost(NN nn, Mat ti, Mat to);
 void nn_finite_diff(NN nn, NN g, float eps, Mat ti, Mat to);
 void nn_backprop(NN nn, NN g, Mat ti, Mat to);
+void nn_backprop_traditional(NN nn, NN g, Mat ti, Mat to);
 void nn_learn(NN nn, NN g, float rate);
 
 #ifdef NN_ENABLE_GYM
 #include <float.h>
-#include "raylib.h"
+#include <raylib.h>
+#include <raymath.h>
 
 typedef struct {
     size_t begin;
@@ -80,7 +82,7 @@ typedef struct {
     float *items;
     size_t count;
     size_t capacity;
-} Plot;
+} Gym_Plot;
 
 #define DA_INIT_CAP 256
 #define da_append(da, item)                                                          \
@@ -95,7 +97,8 @@ typedef struct {
     } while (0)
 
 void gym_render_nn(NN nn, float rx, float ry, float rw, float rh);
-void gym_plot(Plot plot, int rx, int ry, int rw, int rh);
+void gym_plot(Gym_Plot plot, int rx, int ry, int rw, int rh);
+void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh);
 void gym_process_batch(Gym_Batch *gb, size_t batch_size, NN nn, NN g, Mat t, float rate);
 
 #endif // NN_ENABLE_GYM
@@ -394,6 +397,49 @@ void nn_backprop(NN nn, NN g, Mat ti, Mat to)
     }
 }
 
+void nn_backprop_traditional(NN nn, NN g, Mat ti, Mat to)
+{
+    NN_ASSERT(ti.rows == to.rows);
+    size_t n = ti.rows;
+    NN_ASSERT(NN_OUTPUT(nn).cols == to.cols);
+
+    nn_zero(g);
+
+    // i - current sample
+    // l - current layer
+    // j - current activation
+    // k - previous activation
+
+    for (size_t i = 0; i < n; ++i) {
+        mat_copy(NN_INPUT(nn), mat_row(ti, i));
+        nn_forward(nn);
+
+        for (size_t j = 0; j <= nn.count; ++j) {
+            mat_fill(g.as[j], 0);
+        }
+
+        for (size_t j = 0; j < to.cols; ++j) {
+            MAT_AT(NN_OUTPUT(g), 0, j) = (MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(to, i, j))*2/n;
+        }
+
+        for (size_t l = nn.count; l > 0; --l) {
+            for (size_t j = 0; j < nn.as[l].cols; ++j) {
+                float a = MAT_AT(nn.as[l], 0, j);
+                float da = MAT_AT(g.as[l], 0, j);
+                MAT_AT(g.bs[l-1], 0, j) += da*a*(1 - a);
+                for (size_t k = 0; k < nn.as[l-1].cols; ++k) {
+                    // j - weight matrix col
+                    // k - weight matrix row
+                    float pa = MAT_AT(nn.as[l-1], 0, k);
+                    float w = MAT_AT(nn.ws[l-1], k, j);
+                    MAT_AT(g.ws[l-1], k, j) += da*a*(1 - a)*pa;
+                    MAT_AT(g.as[l-1], 0, k) += da*a*(1 - a)*w;
+                }
+            }
+        }
+    }
+}
+
 void nn_finite_diff(NN nn, NN g, float eps, Mat ti, Mat to)
 {
     float saved;
@@ -497,7 +543,7 @@ void gym_render_nn(NN nn, float rx, float ry, float rw, float rh)
     }
 }
 
-void gym_plot(Plot plot, int rx, int ry, int rw, int rh)
+void gym_plot(Gym_Plot plot, int rx, int ry, int rw, int rh)
 {
     float min = FLT_MAX, max = FLT_MIN;
     for (size_t i = 0; i < plot.count; ++i) {
@@ -557,6 +603,44 @@ void gym_process_batch(Gym_Batch *gb, size_t batch_size, NN nn, NN g, Mat t, flo
         size_t batch_count = (t.rows + batch_size - 1)/batch_size;
         gb->cost /= batch_count;
         gb->finished = true;
+    }
+}
+
+void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh)
+{
+    float knob_radius = rh;
+    Vector2 bar_size = {
+        .x = rw - 2*knob_radius,
+        .y = rh*0.25,
+    };
+    Vector2 bar_position = {
+        .x = rx + knob_radius,
+        .y = ry + rh/2 - bar_size.y/2
+    };
+    DrawRectangleV(bar_position, bar_size, WHITE);
+
+    Vector2 knob_position = {
+        .x = bar_position.x + bar_size.x*(*value),
+        .y = ry + rh/2
+    };
+    DrawCircleV(knob_position, knob_radius, RED);
+
+    if (*dragging) {
+        float x = GetMousePosition().x;
+        if (x < bar_position.x) x = bar_position.x;
+        if (x > bar_position.x + bar_size.x) x = bar_position.x + bar_size.x;
+        *value = (x - bar_position.x)/bar_size.x;
+    }
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 mouse_position = GetMousePosition();
+        if (Vector2Distance(mouse_position, knob_position) <= knob_radius) {
+            *dragging = true;
+        }
+    }
+
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        *dragging = false;
     }
 }
 
