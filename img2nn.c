@@ -283,7 +283,7 @@ int main(int argc, char **argv)
     }
     Texture2D original_texture2 = LoadTextureFromImage(original_image2);
 
-    Gym_Batch gb = {0};
+    Batch batch = {0};
     bool rate_dragging = false;
     bool scroll_dragging = false;
     size_t epoch = 0;
@@ -305,10 +305,10 @@ int main(int argc, char **argv)
         }
 
         for (size_t i = 0; i < batches_per_frame && !paused && epoch < max_epoch; ++i) {
-            gym_process_batch(&gb, batch_size, nn, g, t, rate);
-            if (gb.finished) {
+            batch_process(&batch, batch_size, nn, g, t, rate);
+            if (batch.finished) {
                 epoch += 1;
-                da_append(&plot, gb.cost);
+                da_append(&plot, batch.cost);
                 mat_shuffle_rows(t);
             }
         }

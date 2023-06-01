@@ -113,7 +113,7 @@ int main(void)
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
 
     Gym_Plot plot = {0};
-    Gym_Batch gb = {0};
+    Batch batch = {0};
 
     while (!WindowShouldClose()) {
         if (IsKeyPressed(KEY_SPACE)) {
@@ -126,10 +126,10 @@ int main(void)
         }
 
         for (size_t i = 0; i < batches_per_frame && !paused && epoch < max_epoch; ++i) {
-            gym_process_batch(&gb, batch_size, nn, g, t, rate);
-            if (gb.finished) {
+            batch_process(&batch, batch_size, nn, g, t, rate);
+            if (batch.finished) {
                 epoch += 1;
-                da_append(&plot, gb.cost);
+                da_append(&plot, batch.cost);
                 mat_shuffle_rows(t);
             }
         }
