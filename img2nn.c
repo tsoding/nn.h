@@ -35,8 +35,8 @@ char *args_shift(int *argc, char ***argv)
     return result;
 }
 
-#define out_width 1920
-#define out_height 1080
+#define out_width 512
+#define out_height 512
 uint32_t out_pixels[out_width*out_height];
 #define FPS 30
 #define STR2(x) #x
@@ -338,7 +338,10 @@ int main(int argc, char **argv)
                     MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(preview_height - 1);
                     MAT_AT(NN_INPUT(nn), 0, 2) = 0.f;
                     nn_forward(nn);
-                    uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0)*255.f;
+                    float a = MAT_AT(NN_OUTPUT(nn), 0, 0);
+                    if (a < 0) a = 0;
+                    if (a > 1) a = 1;
+                    uint8_t pixel = a*255.f;
                     ImageDrawPixel(&preview_image1, x, y, CLITERAL(Color) {
                         pixel, pixel, pixel, 255
                     });
@@ -351,7 +354,10 @@ int main(int argc, char **argv)
                     MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(preview_height - 1);
                     MAT_AT(NN_INPUT(nn), 0, 2) = 1.f;
                     nn_forward(nn);
-                    uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0)*255.f;
+                    float a = MAT_AT(NN_OUTPUT(nn), 0, 0);
+                    if (a < 0) a = 0;
+                    if (a > 1) a = 1;
+                    uint8_t pixel = a*255.f;
                     ImageDrawPixel(&preview_image2, x, y, CLITERAL(Color) {
                         pixel, pixel, pixel, 255
                     });
@@ -364,7 +370,10 @@ int main(int argc, char **argv)
                     MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(preview_height - 1);
                     MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
                     nn_forward(nn);
-                    uint8_t pixel = MAT_AT(NN_OUTPUT(nn), 0, 0)*255.f;
+                    float a = MAT_AT(NN_OUTPUT(nn), 0, 0);
+                    if (a < 0) a = 0;
+                    if (a > 1) a = 1;
+                    uint8_t pixel = a*255.f;
                     ImageDrawPixel(&preview_image3, x, y, CLITERAL(Color) {
                         pixel, pixel, pixel, 255
                     });

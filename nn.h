@@ -8,6 +8,16 @@
 #include <math.h>
 #include <string.h>
 
+// #define NN_BACKPROP_TRADITIONAL
+
+#ifndef NN_ACT
+#define NN_ACT ACT_SIG
+#endif // NN_ACT
+
+#ifndef NN_RELU_PARAM
+#define NN_RELU_PARAM 0.01f
+#endif // NN_RELU_PARAM
+
 #ifndef NN_MALLOC
 #include <stdlib.h>
 #define NN_MALLOC malloc
@@ -20,8 +30,17 @@
 
 #define ARRAY_LEN(xs) sizeof((xs))/sizeof((xs)[0])
 
+typedef enum {
+    ACT_SIG,
+    ACT_RELU,
+    ACT_TANH,
+    ACT_SIN,
+} Act;
+
 float rand_float(void);
 float sigmoidf(float x);
+float reluf(float x);
+float tanhf(float x);
 
 typedef struct {
     size_t rows;
@@ -41,7 +60,7 @@ Mat mat_row(Mat m, size_t row);
 void mat_copy(Mat dst, Mat src);
 void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
-void mat_sig(Mat m);
+void mat_act(Mat m);
 void mat_print(Mat m, const char *name, size_t padding);
 void mat_shuffle_rows(Mat m);
 #define MAT_PRINT(m) mat_print(m, #m, 0)
@@ -111,6 +130,18 @@ void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, floa
 float sigmoidf(float x)
 {
     return 1.f / (1.f + expf(-x));
+}
+
+float reluf(float x)
+{
+    return x > 0 ? x : x*NN_RELU_PARAM;
+}
+
+float tanhf(float x)
+{
+    float ex = expf(x);
+    float enx = expf(-x);
+    return (ex - enx)/(ex + enx);
 }
 
 float rand_float(void)
@@ -212,11 +243,26 @@ void mat_sum(Mat dst, Mat a)
     }
 }
 
-void mat_sig(Mat m)
+void mat_act(Mat m)
 {
     for (size_t i = 0; i < m.rows; ++i) {
         for (size_t j = 0; j < m.cols; ++j) {
-            MAT_AT(m, i, j) = sigmoidf(MAT_AT(m, i, j));
+            switch (NN_ACT) {
+            case ACT_SIG:
+                MAT_AT(m, i, j) = sigmoidf(MAT_AT(m, i, j));
+                break;
+            case ACT_RELU:
+                MAT_AT(m, i, j) = reluf(MAT_AT(m, i, j));
+                break;
+            case ACT_TANH:
+                MAT_AT(m, i, j) = tanhf(MAT_AT(m, i, j));
+                break;
+            case ACT_SIN:
+                MAT_AT(m, i, j) = sinf(MAT_AT(m, i, j));
+                break;
+            default:
+                NN_ASSERT(0 && "Unreachable");
+            }
         }
     }
 }
@@ -315,7 +361,7 @@ void nn_forward(NN nn)
     for (size_t i = 0; i < nn.count; ++i) {
         mat_dot(nn.as[i+1], nn.as[i], nn.ws[i]);
         mat_sum(nn.as[i+1], nn.bs[i]);
-        mat_sig(nn.as[i+1]);
+        mat_act(nn.as[i+1]);
     }
 }
 
@@ -364,21 +410,48 @@ void nn_backprop(NN nn, NN g, Mat ti, Mat to)
         }
 
         for (size_t j = 0; j < to.cols; ++j) {
+#ifdef NN_BACKPROP_TRADITIONAL
+            MAT_AT(NN_OUTPUT(g), 0, j) = 2*(MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(to, i, j));
+#else
             MAT_AT(NN_OUTPUT(g), 0, j) = MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(to, i, j);
+#endif // NN_BACKPROP_TRADITIONAL
         }
+
+#ifdef NN_BACKPROP_TRADITIONAL
+        float s = 1;
+#else
+        float s = 2;
+#endif // NN_BACKPROP_TRADITIONAL
 
         for (size_t l = nn.count; l > 0; --l) {
             for (size_t j = 0; j < nn.as[l].cols; ++j) {
                 float a = MAT_AT(nn.as[l], 0, j);
                 float da = MAT_AT(g.as[l], 0, j);
-                MAT_AT(g.bs[l-1], 0, j) += 2*da*a*(1 - a);
+                float q;
+                switch (NN_ACT) {
+                case ACT_SIG:
+                    q = a*(1 - a);
+                    break;
+                case ACT_RELU:
+                    q = a >= 0 ? 1 : NN_RELU_PARAM;
+                    break;
+                case ACT_TANH:
+                    q = 1 - a*a;
+                    break;
+                case ACT_SIN:
+                    NN_ASSERT(0 && "Unsupported");
+                    break;
+                default:
+                    NN_ASSERT(0 && "Unreachable");
+                }
+                MAT_AT(g.bs[l-1], 0, j) += s*da*q;
                 for (size_t k = 0; k < nn.as[l-1].cols; ++k) {
                     // j - weight matrix col
                     // k - weight matrix row
                     float pa = MAT_AT(nn.as[l-1], 0, k);
                     float w = MAT_AT(nn.ws[l-1], k, j);
-                    MAT_AT(g.ws[l-1], k, j) += 2*da*a*(1 - a)*pa;
-                    MAT_AT(g.as[l-1], 0, k) += 2*da*a*(1 - a)*w;
+                    MAT_AT(g.ws[l-1], k, j) += s*da*q*pa;
+                    MAT_AT(g.as[l-1], 0, k) += s*da*q*w;
                 }
             }
         }
