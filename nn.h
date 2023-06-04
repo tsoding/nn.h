@@ -120,6 +120,7 @@ typedef struct {
 void gym_render_nn(NN nn, float rx, float ry, float rw, float rh);
 void gym_plot(Gym_Plot plot, int rx, int ry, int rw, int rh);
 void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh);
+void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, size_t stride, float low, float high);
 
 #endif // NN_ENABLE_GYM
 
@@ -672,6 +673,25 @@ void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, floa
 
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         *dragging = false;
+    }
+}
+
+void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, size_t stride, float low, float high)
+{
+    NN_ASSERT(NN_INPUT(nn).cols >= 2);
+    NN_ASSERT(NN_OUTPUT(nn).cols >= 1);
+    uint32_t *pixels_u32 = pixels;
+    for (size_t y = 0; y < height; ++y) {
+        for (size_t x = 0; x < width; ++x) {
+            MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(float)(width - 1);
+            MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(float)(height - 1);
+            nn_forward(nn);
+            float a = MAT_AT(NN_OUTPUT(nn), 0, 0);
+            if (a < low) a = low;
+            if (a > high) a = high;
+            uint32_t pixel = (a + low)/(high - low)*255.f;
+            pixels_u32[y*stride + x] = (0xFF<<(8*3))|(pixel<<(8*2))|(pixel<<(8*1))|(pixel<<(8*0));
+        }
     }
 }
 

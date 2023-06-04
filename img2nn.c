@@ -61,20 +61,8 @@ void render_single_out_image(NN nn, float a)
         py = out_height/2 - size/2;
     }
 
-    for (size_t y = 0; y < size; ++y) {
-        for (size_t x = 0; x < size; ++x) {
-            MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(size - 1);
-            MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(size - 1);
-            MAT_AT(NN_INPUT(nn), 0, 2) = a;
-            nn_forward(nn);
-            float activation = MAT_AT(NN_OUTPUT(nn), 0, 0);
-            if (activation < 0) activation = 0;
-            if (activation > 1) activation = 1;
-            uint32_t bright = activation*255.f;
-            uint32_t pixel = 0xFF000000|bright|(bright<<8)|(bright<<16);
-            out_pixels[(py + y)*out_width + (px + x)] = pixel;
-        }
-    }
+    MAT_AT(NN_INPUT(nn), 0, 2) = a;
+    gym_nn_image_grayscale(nn, &out_pixels[py*out_width + px], size, size, out_width, 0, 1);
 }
 
 int render_upscaled_video(NN nn, float duration, const char *out_file_path)
@@ -332,54 +320,8 @@ int main(int argc, char **argv)
 
             float scale = rh*0.01;
 
-            for (size_t y = 0; y < (size_t) preview_height; ++y) {
-                for (size_t x = 0; x < (size_t) preview_width; ++x) {
-                    MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(preview_width - 1);
-                    MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(preview_height - 1);
-                    MAT_AT(NN_INPUT(nn), 0, 2) = 0.f;
-                    nn_forward(nn);
-                    float a = MAT_AT(NN_OUTPUT(nn), 0, 0);
-                    if (a < 0) a = 0;
-                    if (a > 1) a = 1;
-                    uint8_t pixel = a*255.f;
-                    ImageDrawPixel(&preview_image1, x, y, CLITERAL(Color) {
-                        pixel, pixel, pixel, 255
-                    });
-                }
-            }
-
-            for (size_t y = 0; y < (size_t) preview_height; ++y) {
-                for (size_t x = 0; x < (size_t) preview_width; ++x) {
-                    MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(preview_width - 1);
-                    MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(preview_height - 1);
-                    MAT_AT(NN_INPUT(nn), 0, 2) = 1.f;
-                    nn_forward(nn);
-                    float a = MAT_AT(NN_OUTPUT(nn), 0, 0);
-                    if (a < 0) a = 0;
-                    if (a > 1) a = 1;
-                    uint8_t pixel = a*255.f;
-                    ImageDrawPixel(&preview_image2, x, y, CLITERAL(Color) {
-                        pixel, pixel, pixel, 255
-                    });
-                }
-            }
-
-            for (size_t y = 0; y < (size_t) preview_height; ++y) {
-                for (size_t x = 0; x < (size_t) preview_width; ++x) {
-                    MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(preview_width - 1);
-                    MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(preview_height - 1);
-                    MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
-                    nn_forward(nn);
-                    float a = MAT_AT(NN_OUTPUT(nn), 0, 0);
-                    if (a < 0) a = 0;
-                    if (a > 1) a = 1;
-                    uint8_t pixel = a*255.f;
-                    ImageDrawPixel(&preview_image3, x, y, CLITERAL(Color) {
-                        pixel, pixel, pixel, 255
-                    });
-                }
-            }
-
+            MAT_AT(NN_INPUT(nn), 0, 2) = 0.f;
+            gym_nn_image_grayscale(nn, preview_image1.data, preview_image1.width, preview_image1.height, preview_image1.width, 0, 1);
             UpdateTexture(preview_texture1, preview_image1.data);
             DrawTextureEx(preview_texture1, CLITERAL(Vector2) {
                 rx, ry  + img1_height*scale
@@ -388,6 +330,8 @@ int main(int argc, char **argv)
                 rx, ry
             }, 0, scale, WHITE);
 
+            MAT_AT(NN_INPUT(nn), 0, 2) = 1.f;
+            gym_nn_image_grayscale(nn, preview_image2.data, preview_image2.width, preview_image2.height, preview_image2.width, 0, 1);
             UpdateTexture(preview_texture2, preview_image2.data);
             DrawTextureEx(preview_texture2, CLITERAL(Vector2) {
                 rx + img1_width*scale, ry  + img2_height*scale
@@ -396,6 +340,8 @@ int main(int argc, char **argv)
                 rx + img1_width*scale, ry
             }, 0, scale, WHITE);
 
+            MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
+            gym_nn_image_grayscale(nn, preview_image3.data, preview_image3.width, preview_image3.height, preview_image3.width, 0, 1);
             UpdateTexture(preview_texture3, preview_image3.data);
             DrawTextureEx(preview_texture3, CLITERAL(Vector2) {
                 rx, ry + img2_height*scale*2
