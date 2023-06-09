@@ -107,10 +107,48 @@ void batch_process(Batch *b, size_t batch_size, NN nn, NN g, Mat t, float rate);
 #include <raymath.h>
 
 typedef struct {
+    float x;
+    float y;
+    float w;
+    float h;
+} Gym_Rect;
+
+Gym_Rect gym_rect(float x, float y, float w, float h);
+
+typedef enum {
+    GLO_HORZ,
+    GLO_VERT,
+} Gym_Layout_Orient;
+
+typedef struct {
     float *items;
     size_t count;
     size_t capacity;
 } Gym_Plot;
+
+typedef struct {
+    Gym_Layout_Orient orient;
+    Gym_Rect rect;
+    size_t count;
+    size_t i;
+    float gap;
+} Gym_Layout;
+
+Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line);
+
+typedef struct {
+    Gym_Layout *items;
+    size_t count;
+    size_t capacity;
+} Gym_Layout_Stack;
+
+void gym_layout_stack_push(Gym_Layout_Stack *ls, Gym_Layout_Orient orient, Gym_Rect rect, size_t count, float gap);
+#define gls_push gym_layout_stack_push
+#define gym_layout_stack_slot(ls) (assert((ls)->count > 0), gym_layout_slot_loc(&(ls)->items[(ls)->count - 1], __FILE__, __LINE__))
+#define gls_slot gym_layout_stack_slot
+#define gym_layout_stack_pop(ls) do { assert((ls)->count > 0); (ls)->count -= 1; } while (0)
+#define gls_pop gym_layout_stack_pop
+
 
 #define DA_INIT_CAP 256
 #define da_append(da, item)                                                          \
@@ -690,6 +728,81 @@ void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, si
             pixels_u32[y*stride + x] = (0xFF<<(8*3))|(pixel<<(8*2))|(pixel<<(8*1))|(pixel<<(8*0));
         }
     }
+}
+
+Gym_Rect gym_rect(float x, float y, float w, float h)
+{
+    Gym_Rect r = {0};
+    r.x = x;
+    r.y = y;
+    r.w = w;
+    r.h = h;
+    return r;
+}
+
+Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
+{
+    if (l->i >= l->count) {
+        fprintf(stderr, "%s:%d: ERROR: Layout overflow\n", file_path, line);
+        exit(1);
+    }
+
+    Gym_Rect r = {0};
+
+    switch (l->orient) {
+    case GLO_HORZ:
+        r.w = l->rect.w/l->count;
+        r.h = l->rect.h;
+        r.x = l->rect.x + l->i*r.w;
+        r.y = l->rect.y;
+
+        if (l->i == 0) { // First
+            r.w -= l->gap/2;
+        } else if (l->i >= l->count - 1) { // Last
+            r.x += l->gap/2;
+            r.w -= l->gap/2;
+        } else { // Middle
+            r.x += l->gap/2;
+            r.w -= l->gap;
+        }
+
+        break;
+
+    case GLO_VERT:
+        r.w = l->rect.w;
+        r.h = l->rect.h/l->count;
+        r.x = l->rect.x;
+        r.y = l->rect.y + l->i*r.h;
+
+        if (l->i == 0) { // First
+            r.h -= l->gap/2;
+        } else if (l->i >= l->count - 1) { // Last
+            r.y += l->gap/2;
+            r.h -= l->gap/2;
+        } else { // Middle
+            r.y += l->gap/2;
+            r.h -= l->gap;
+        }
+
+        break;
+
+    default:
+        assert(0 && "Unreachable");
+    }
+
+    l->i += 1;
+
+    return r;
+}
+
+void gym_layout_stack_push(Gym_Layout_Stack *ls, Gym_Layout_Orient orient, Gym_Rect rect, size_t count, float gap)
+{
+    Gym_Layout l = {0};
+    l.orient = orient;
+    l.rect = rect;
+    l.count = count;
+    l.gap = gap;
+    da_append(ls, l);
 }
 
 #endif // NN_ENABLE_GYM

@@ -5,22 +5,9 @@
 
 #include <raylib.h>
 
-typedef struct {
-    float x;
-    float y;
-    float w;
-    float h;
-} Gym_Rect;
-
-Gym_Rect gym_rect(float x, float y, float w, float h)
-{
-    Gym_Rect r = {0};
-    r.x = x;
-    r.y = y;
-    r.w = w;
-    r.h = h;
-    return r;
-}
+#define NN_IMPLEMENTATION
+#define NN_ENABLE_GYM
+#include "nn.h"
 
 void widget(Gym_Rect r, Color c)
 {
@@ -32,119 +19,6 @@ void widget(Gym_Rect r, Color c)
     }
     DrawRectangleRec(rr, c);
 }
-
-typedef enum {
-    GLO_HORZ,
-    GLO_VERT,
-} Gym_Layout_Orient;
-
-typedef struct {
-    Gym_Layout_Orient orient;
-    Gym_Rect rect;
-    size_t count;
-    size_t i;
-    float gap;
-} Gym_Layout;
-
-Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
-{
-    if (l->i >= l->count) {
-        fprintf(stderr, "%s:%d: ERROR: Layout overflow\n", file_path, line);
-        exit(1);
-    }
-
-    Gym_Rect r = {0};
-
-    switch (l->orient) {
-    case GLO_HORZ:
-        r.w = l->rect.w/l->count;
-        r.h = l->rect.h;
-        r.x = l->rect.x + l->i*r.w;
-        r.y = l->rect.y;
-
-        if (l->i == 0) { // First
-            r.w -= l->gap/2;
-        } else if (l->i >= l->count - 1) { // Last
-            r.x += l->gap/2;
-            r.w -= l->gap/2;
-        } else { // Middle
-            r.x += l->gap/2;
-            r.w -= l->gap;
-        }
-
-        break;
-
-    case GLO_VERT:
-        r.w = l->rect.w;
-        r.h = l->rect.h/l->count;
-        r.x = l->rect.x;
-        r.y = l->rect.y + l->i*r.h;
-
-        if (l->i == 0) { // First
-            r.h -= l->gap/2;
-        } else if (l->i >= l->count - 1) { // Last
-            r.y += l->gap/2;
-            r.h -= l->gap/2;
-        } else { // Middle
-            r.y += l->gap/2;
-            r.h -= l->gap;
-        }
-
-        break;
-
-    default:
-        assert(0 && "Unreachable");
-    }
-
-    l->i += 1;
-
-    return r;
-}
-
-#define DA_INIT_CAP 256
-#define da_append(da, item)                                                          \
-    do {                                                                             \
-        if ((da)->count >= (da)->capacity) {                                         \
-            (da)->capacity = (da)->capacity == 0 ? DA_INIT_CAP : (da)->capacity*2;   \
-            (da)->items = realloc((da)->items, (da)->capacity*sizeof(*(da)->items)); \
-            assert((da)->items != NULL && "Buy more RAM lol");                       \
-        }                                                                            \
-                                                                                     \
-        (da)->items[(da)->count++] = (item);                                         \
-    } while (0)
-
-typedef struct {
-    Gym_Layout *items;
-    size_t count;
-    size_t capacity;
-} Gym_Layout_Stack;
-
-void gym_layout_stack_push(Gym_Layout_Stack *ls, Gym_Layout_Orient orient, Gym_Rect rect, size_t count, float gap)
-{
-    Gym_Layout l = {0};
-    l.orient = orient;
-    l.rect = rect;
-    l.count = count;
-    l.gap = gap;
-    da_append(ls, l);
-}
-#define gls_push gym_layout_stack_push
-
-Gym_Rect gym_layout_stack_slot_loc(Gym_Layout_Stack *ls, const char *file_path, int line)
-{
-    assert(ls->count > 0);
-    return gym_layout_slot_loc(&ls->items[ls->count - 1], file_path, line);
-}
-
-#define gym_layout_stack_slot(ls) gym_layout_stack_slot_loc(ls, __FILE__, __LINE__)
-#define gls_slot gym_layout_stack_slot
-
-void gym_layout_stack_pop(Gym_Layout_Stack *ls)
-{
-    assert(ls->count > 0);
-    ls->count -= 1;
-}
-#define gls_pop gym_layout_stack_pop
 
 int main(void)
 {
