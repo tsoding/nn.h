@@ -567,12 +567,30 @@ void batch_process(Batch *b, size_t batch_size, NN nn, NN g, Mat t, float rate)
 
 #ifdef NN_ENABLE_GYM
 
+int nn_max_column(NN nn) {
+    int max = nn.as[0].cols;
+    for (size_t l = 1; l < nn.count; ++l) {
+        int cols = nn.as[l].cols;
+        if (cols > max) max = cols;
+    }
+
+    return max;
+}
+
+float cal_neuron_radius(NN nn, float rh) {
+    float radius = rh*0.0358;
+    int max_column = nn_max_column(nn);
+    if (radius * max_column < rh) {
+        return radius;
+    }
+    return rh / (max_column * 2.);
+}
+
 void gym_render_nn(NN nn, float rx, float ry, float rw, float rh)
 {
     Color low_color        = {0xFF, 0x00, 0xFF, 0xFF};
     Color high_color       = {0x00, 0xFF, 0x00, 0xFF};
 
-    float neuron_radius = rh*0.03;
     float layer_border_vpad = rh*0.08;
     float layer_border_hpad = rw*0.06;
     float nn_width = rw - 2*layer_border_hpad;
@@ -581,6 +599,7 @@ void gym_render_nn(NN nn, float rx, float ry, float rw, float rh)
     float nn_y = ry + rh/2 - nn_height/2;
     size_t arch_count = nn.count + 1;
     float layer_hpad = nn_width / arch_count;
+    float neuron_radius = cal_neuron_radius(nn, nn_height);
     for (size_t l = 0; l < arch_count; ++l) {
         float layer_vpad1 = nn_height / nn.as[l].cols;
         for (size_t i = 0; i < nn.as[l].cols; ++i) {
@@ -595,12 +614,19 @@ void gym_render_nn(NN nn, float rx, float ry, float rw, float rh)
                     float cy2 = nn_y + j*layer_vpad2 + layer_vpad2/2;
                     float value = sigmoidf(MAT_AT(nn.ws[l], i, j));
                     high_color.a = floorf(255.f*value);
-                    float thick = rh*0.004f;
+                    float thick = rh*0.001f;
                     Vector2 start = {cx1, cy1};
                     Vector2 end   = {cx2, cy2};
                     DrawLineEx(start, end, thick, ColorAlphaBlend(low_color, high_color, WHITE));
                 }
             }
+        }
+    }
+    for (size_t l = 0; l < arch_count; ++l) {
+        float layer_vpad1 = nn_height / nn.as[l].cols;
+        for (size_t i = 0; i < nn.as[l].cols; ++i) {
+            float cx1 = nn_x + l*layer_hpad + layer_hpad/2;
+            float cy1 = nn_y + i*layer_vpad1 + layer_vpad1/2;
             if (l > 0) {
                 high_color.a = floorf(255.f*sigmoidf(MAT_AT(nn.bs[l-1], 0, i)));
                 DrawCircle(cx1, cy1, neuron_radius, ColorAlphaBlend(low_color, high_color, WHITE));
