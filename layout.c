@@ -43,20 +43,25 @@ typedef struct {
     Layout_Rect rect;
     size_t count;
     size_t i;
+    float gap;
 } Layout;
 
-Layout make_layout(Layout_Orient orient, Layout_Rect rect, size_t count)
+Layout make_layout(Layout_Orient orient, Layout_Rect rect, size_t count, float gap)
 {
     Layout l = {0};
     l.orient = orient;
     l.rect = rect;
     l.count = count;
+    l.gap = gap;
     return l;
 }
 
-Layout_Rect layout_slot(Layout *l)
+Layout_Rect layout_slot(Layout *l, const char *file_path, int line)
 {
-    assert(l->i < l->count);
+    if (l->i >= l->count) {
+        fprintf(stderr, "%s:%d: ERROR: Layout overflow\n", file_path, line);
+        exit(1);
+    }
 
     Layout_Rect r = {0};
 
@@ -66,6 +71,17 @@ Layout_Rect layout_slot(Layout *l)
         r.h = l->rect.h;
         r.x = l->rect.x + l->i*r.w;
         r.y = l->rect.y;
+        
+        if (l->i == 0) { // First
+            r.w -= l->gap/2;
+        } else if (l->i >= l->count - 1) { // Last
+            r.x += l->gap/2;
+            r.w -= l->gap/2;
+        } else { // Middle
+            r.x += l->gap/2;
+            r.w -= l->gap;
+        }
+
         break;
 
     case LO_VERT:
@@ -73,6 +89,17 @@ Layout_Rect layout_slot(Layout *l)
         r.h = l->rect.h/l->count;
         r.x = l->rect.x;
         r.y = l->rect.y + l->i*r.h;
+
+        if (l->i == 0) { // First
+            r.h -= l->gap/2;
+        } else if (l->i >= l->count - 1) { // Last
+            r.y += l->gap/2;
+            r.h -= l->gap/2;
+        } else { // Middle
+            r.y += l->gap/2;
+            r.h -= l->gap;
+        }
+
         break;
 
     default:
@@ -102,17 +129,19 @@ typedef struct {
     size_t capacity;
 } Layout_Stack;
 
-void layout_stack_push(Layout_Stack *ls, Layout_Orient orient, Layout_Rect rect, size_t count)
+void layout_stack_push(Layout_Stack *ls, Layout_Orient orient, Layout_Rect rect, size_t count, float gap)
 {
-    Layout l = make_layout(orient, rect, count);
+    Layout l = make_layout(orient, rect, count, gap);
     da_append(ls, l);
 }
 
-Layout_Rect layout_stack_slot(Layout_Stack *ls)
+Layout_Rect layout_stack_slot_loc(Layout_Stack *ls, const char *file_path, int line)
 {
     assert(ls->count > 0);
-    return layout_slot(&ls->items[ls->count - 1]);
+    return layout_slot(&ls->items[ls->count - 1], file_path, line);
 }
+
+#define layout_stack_slot(ls) layout_stack_slot_loc(ls, __FILE__, __LINE__)
 
 void layout_stack_pop(Layout_Stack *ls)
 {
@@ -135,19 +164,26 @@ int main(void)
     while (!WindowShouldClose()) {
         float w = GetRenderWidth();
         float h = GetRenderHeight();
-        float padding = h*0.15;
+        float frame = h*0.15;
+        float gap = 10.0f;
 
         BeginDrawing();
             ClearBackground(BLACK);
-            layout_stack_push(&ls, LO_HORZ, make_layout_rect(0, padding, w, h - 2*padding), 3);
+            layout_stack_push(&ls, LO_HORZ, make_layout_rect(0, frame, w, h - 2*frame), 3, gap);
                 widget(layout_stack_slot(&ls), RED);
                 widget(layout_stack_slot(&ls), BLUE);
-                layout_stack_push(&ls, LO_VERT, layout_stack_slot(&ls), 3);
-                    layout_stack_push(&ls, LO_HORZ, layout_stack_slot(&ls), 2);
-                        widget(layout_stack_slot(&ls), GREEN);
+                layout_stack_push(&ls, LO_VERT, layout_stack_slot(&ls), 3, gap);
+                    layout_stack_push(&ls, LO_HORZ, layout_stack_slot(&ls), 2, gap);
+                        layout_stack_push(&ls, LO_VERT, layout_stack_slot(&ls), 2, gap);
+                           widget(layout_stack_slot(&ls), GREEN);
+                           layout_stack_push(&ls, LO_HORZ, layout_stack_slot(&ls), 2, gap);
+                              widget(layout_stack_slot(&ls), GREEN);
+                              widget(layout_stack_slot(&ls), GREEN);
+                           layout_stack_pop(&ls);
+                        layout_stack_pop(&ls);
                         widget(layout_stack_slot(&ls), PURPLE);
                     layout_stack_pop(&ls);
-                    layout_stack_push(&ls, LO_HORZ, layout_stack_slot(&ls), 3);
+                    layout_stack_push(&ls, LO_HORZ, layout_stack_slot(&ls), 3, gap);
                         widget(layout_stack_slot(&ls), YELLOW);
                         widget(layout_stack_slot(&ls), YELLOW);
                         widget(layout_stack_slot(&ls), YELLOW);
