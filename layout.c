@@ -10,11 +10,11 @@ typedef struct {
     float y;
     float w;
     float h;
-} Layout_Rect;
+} Gym_Rect;
 
-Layout_Rect make_layout_rect(float x, float y, float w, float h)
+Gym_Rect gym_rect(float x, float y, float w, float h)
 {
-    Layout_Rect r = {0};
+    Gym_Rect r = {0};
     r.x = x;
     r.y = y;
     r.w = w;
@@ -22,7 +22,7 @@ Layout_Rect make_layout_rect(float x, float y, float w, float h)
     return r;
 }
 
-void widget(Layout_Rect r, Color c)
+void widget(Gym_Rect r, Color c)
 {
     Rectangle rr = {
         ceilf(r.x), ceilf(r.y), ceilf(r.w), ceilf(r.h)
@@ -34,44 +34,34 @@ void widget(Layout_Rect r, Color c)
 }
 
 typedef enum {
-    LO_HORZ,
-    LO_VERT,
-} Layout_Orient;
+    GLO_HORZ,
+    GLO_VERT,
+} Gym_Layout_Orient;
 
 typedef struct {
-    Layout_Orient orient;
-    Layout_Rect rect;
+    Gym_Layout_Orient orient;
+    Gym_Rect rect;
     size_t count;
     size_t i;
     float gap;
-} Layout;
+} Gym_Layout;
 
-Layout make_layout(Layout_Orient orient, Layout_Rect rect, size_t count, float gap)
-{
-    Layout l = {0};
-    l.orient = orient;
-    l.rect = rect;
-    l.count = count;
-    l.gap = gap;
-    return l;
-}
-
-Layout_Rect layout_slot(Layout *l, const char *file_path, int line)
+Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
 {
     if (l->i >= l->count) {
         fprintf(stderr, "%s:%d: ERROR: Layout overflow\n", file_path, line);
         exit(1);
     }
 
-    Layout_Rect r = {0};
+    Gym_Rect r = {0};
 
     switch (l->orient) {
-    case LO_HORZ:
+    case GLO_HORZ:
         r.w = l->rect.w/l->count;
         r.h = l->rect.h;
         r.x = l->rect.x + l->i*r.w;
         r.y = l->rect.y;
-        
+
         if (l->i == 0) { // First
             r.w -= l->gap/2;
         } else if (l->i >= l->count - 1) { // Last
@@ -84,7 +74,7 @@ Layout_Rect layout_slot(Layout *l, const char *file_path, int line)
 
         break;
 
-    case LO_VERT:
+    case GLO_VERT:
         r.w = l->rect.w;
         r.h = l->rect.h/l->count;
         r.x = l->rect.x;
@@ -124,30 +114,37 @@ Layout_Rect layout_slot(Layout *l, const char *file_path, int line)
     } while (0)
 
 typedef struct {
-    Layout *items;
+    Gym_Layout *items;
     size_t count;
     size_t capacity;
-} Layout_Stack;
+} Gym_Layout_Stack;
 
-void layout_stack_push(Layout_Stack *ls, Layout_Orient orient, Layout_Rect rect, size_t count, float gap)
+void gym_layout_stack_push(Gym_Layout_Stack *ls, Gym_Layout_Orient orient, Gym_Rect rect, size_t count, float gap)
 {
-    Layout l = make_layout(orient, rect, count, gap);
+    Gym_Layout l = {0};
+    l.orient = orient;
+    l.rect = rect;
+    l.count = count;
+    l.gap = gap;
     da_append(ls, l);
 }
+#define gls_push gym_layout_stack_push
 
-Layout_Rect layout_stack_slot_loc(Layout_Stack *ls, const char *file_path, int line)
+Gym_Rect gym_layout_stack_slot_loc(Gym_Layout_Stack *ls, const char *file_path, int line)
 {
     assert(ls->count > 0);
-    return layout_slot(&ls->items[ls->count - 1], file_path, line);
+    return gym_layout_slot_loc(&ls->items[ls->count - 1], file_path, line);
 }
 
-#define layout_stack_slot(ls) layout_stack_slot_loc(ls, __FILE__, __LINE__)
+#define gym_layout_stack_slot(ls) gym_layout_stack_slot_loc(ls, __FILE__, __LINE__)
+#define gls_slot gym_layout_stack_slot
 
-void layout_stack_pop(Layout_Stack *ls)
+void gym_layout_stack_pop(Gym_Layout_Stack *ls)
 {
     assert(ls->count > 0);
     ls->count -= 1;
 }
+#define gls_pop gym_layout_stack_pop
 
 int main(void)
 {
@@ -159,7 +156,7 @@ int main(void)
     InitWindow(width, height, "Layout");
     SetTargetFPS(60);
 
-    Layout_Stack ls = {0};
+    Gym_Layout_Stack ls = {0};
 
     while (!WindowShouldClose()) {
         float w = GetRenderWidth();
@@ -169,28 +166,28 @@ int main(void)
 
         BeginDrawing();
             ClearBackground(BLACK);
-            layout_stack_push(&ls, LO_HORZ, make_layout_rect(0, frame, w, h - 2*frame), 3, gap);
-                widget(layout_stack_slot(&ls), RED);
-                widget(layout_stack_slot(&ls), BLUE);
-                layout_stack_push(&ls, LO_VERT, layout_stack_slot(&ls), 3, gap);
-                    layout_stack_push(&ls, LO_HORZ, layout_stack_slot(&ls), 2, gap);
-                        layout_stack_push(&ls, LO_VERT, layout_stack_slot(&ls), 2, gap);
-                           widget(layout_stack_slot(&ls), GREEN);
-                           layout_stack_push(&ls, LO_HORZ, layout_stack_slot(&ls), 2, gap);
-                              widget(layout_stack_slot(&ls), GREEN);
-                              widget(layout_stack_slot(&ls), GREEN);
-                           layout_stack_pop(&ls);
-                        layout_stack_pop(&ls);
-                        widget(layout_stack_slot(&ls), PURPLE);
-                    layout_stack_pop(&ls);
-                    layout_stack_push(&ls, LO_HORZ, layout_stack_slot(&ls), 3, gap);
-                        widget(layout_stack_slot(&ls), YELLOW);
-                        widget(layout_stack_slot(&ls), YELLOW);
-                        widget(layout_stack_slot(&ls), YELLOW);
-                    layout_stack_pop(&ls);
-                    widget(layout_stack_slot(&ls), PURPLE);
-                layout_stack_pop(&ls);
-            layout_stack_pop(&ls);
+            gls_push(&ls, GLO_HORZ, gym_rect(0, frame, w, h - 2*frame), 3, gap);
+                widget(gls_slot(&ls), RED);
+                widget(gls_slot(&ls), BLUE);
+                gls_push(&ls, GLO_VERT, gls_slot(&ls), 3, gap);
+                    gls_push(&ls, GLO_HORZ, gls_slot(&ls), 2, gap);
+                        gls_push(&ls, GLO_VERT, gls_slot(&ls), 2, gap);
+                           widget(gls_slot(&ls), GREEN);
+                           gls_push(&ls, GLO_HORZ, gls_slot(&ls), 2, gap);
+                              widget(gls_slot(&ls), GREEN);
+                              widget(gls_slot(&ls), GREEN);
+                           gls_pop(&ls);
+                        gls_pop(&ls);
+                        widget(gls_slot(&ls), PURPLE);
+                    gls_pop(&ls);
+                    gls_push(&ls, GLO_HORZ, gls_slot(&ls), 3, gap);
+                        widget(gls_slot(&ls), YELLOW);
+                        widget(gls_slot(&ls), YELLOW);
+                        widget(gls_slot(&ls), YELLOW);
+                    gls_pop(&ls);
+                    widget(gls_slot(&ls), PURPLE);
+                gls_pop(&ls);
+            gls_pop(&ls);
         EndDrawing();
 
         assert(ls.count == 0);
