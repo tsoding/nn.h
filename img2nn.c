@@ -156,6 +156,52 @@ int render_upscaled_screenshot(NN nn, const char *out_file_path)
     return 0;
 }
 
+typedef enum {
+    GHA_LEFT,
+    GHA_RIGHT,
+    GHA_CENTER,
+} Gym_Horz_Align;
+
+typedef enum {
+    GVA_TOP,
+    GVA_BOTTOM,
+    GVA_CENTER,
+} Gym_Vert_Align;
+
+void render_texture_in_slot(Texture2D texture, Gym_Horz_Align ha, Gym_Vert_Align va, Gym_Rect r)
+{
+    Vector2 position = {r.x, r.y};
+    if (r.w > r.h) {
+        float scale = r.h/texture.height;
+        switch (ha) {
+        case GHA_LEFT: break;
+        case GHA_RIGHT:
+            position.x += r.w;
+            position.x -= texture.width*scale;
+            break;
+        case GHA_CENTER:
+            position.x += r.w/2;
+            position.x -= texture.width*scale/2;
+            break;
+        }
+        DrawTextureEx(texture, position, 0, scale, WHITE);
+    } else {
+        float scale = r.w/texture.width;
+        switch (va) {
+        case GVA_TOP: break;
+        case GVA_BOTTOM:
+            position.y += r.h;
+            position.y -= texture.height*scale;
+            break;
+        case GVA_CENTER:
+            position.y += r.h/2;
+            position.y -= texture.height*scale/2;
+            break;
+        }
+        DrawTextureEx(texture, position, 0, scale, WHITE);
+    }
+}
+
 int main(int argc, char **argv)
 {
     const char *program = args_shift(&argc, &argv);
@@ -301,6 +347,18 @@ int main(int argc, char **argv)
             }
         }
 
+        MAT_AT(NN_INPUT(nn), 0, 2) = 0.f;
+        gym_nn_image_grayscale(nn, preview_image1.data, preview_image1.width, preview_image1.height, preview_image1.width, 0, 1);
+        UpdateTexture(preview_texture1, preview_image1.data);
+
+        MAT_AT(NN_INPUT(nn), 0, 2) = 1.f;
+        gym_nn_image_grayscale(nn, preview_image2.data, preview_image2.width, preview_image2.height, preview_image2.width, 0, 1);
+        UpdateTexture(preview_texture2, preview_image2.data);
+
+        MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
+        gym_nn_image_grayscale(nn, preview_image3.data, preview_image3.width, preview_image3.height, preview_image3.width, 0, 1);
+        UpdateTexture(preview_texture3, preview_image3.data);
+
         BeginDrawing();
         Color background_color = {0x18, 0x18, 0x18, 0xFF};
         ClearBackground(background_color);
@@ -308,52 +366,35 @@ int main(int argc, char **argv)
             int w = GetRenderWidth();
             int h = GetRenderHeight();
 
-            int rw = w/3;
-            int rh = h*2/3;
-            int rx = 0;
-            int ry = h/2 - rh/2;
+            Gym_Rect r;
+            r.w = w;
+            r.h = h*2/3;
+            r.x = 0;
+            r.y = h/2 - r.h/2;
 
-            gym_plot(plot, CLITERAL(Gym_Rect) { rx, ry, rw, rh });
-            rx += rw;
-            gym_render_nn(nn, CLITERAL(Gym_Rect) { rx, ry, rw, rh });
-            rx += rw;
-
-            float scale = rh*0.01;
-
-            MAT_AT(NN_INPUT(nn), 0, 2) = 0.f;
-            gym_nn_image_grayscale(nn, preview_image1.data, preview_image1.width, preview_image1.height, preview_image1.width, 0, 1);
-            UpdateTexture(preview_texture1, preview_image1.data);
-            DrawTextureEx(preview_texture1, CLITERAL(Vector2) {
-                rx, ry  + img1_height*scale
-            }, 0, scale, WHITE);
-            DrawTextureEx(original_texture1, CLITERAL(Vector2) {
-                rx, ry
-            }, 0, scale, WHITE);
-
-            MAT_AT(NN_INPUT(nn), 0, 2) = 1.f;
-            gym_nn_image_grayscale(nn, preview_image2.data, preview_image2.width, preview_image2.height, preview_image2.width, 0, 1);
-            UpdateTexture(preview_texture2, preview_image2.data);
-            DrawTextureEx(preview_texture2, CLITERAL(Vector2) {
-                rx + img1_width*scale, ry  + img2_height*scale
-            }, 0, scale, WHITE);
-            DrawTextureEx(original_texture2, CLITERAL(Vector2) {
-                rx + img1_width*scale, ry
-            }, 0, scale, WHITE);
-
-            MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
-            gym_nn_image_grayscale(nn, preview_image3.data, preview_image3.width, preview_image3.height, preview_image3.width, 0, 1);
-            UpdateTexture(preview_texture3, preview_image3.data);
-            DrawTextureEx(preview_texture3, CLITERAL(Vector2) {
-                rx, ry + img2_height*scale*2
-            }, 0, 2*scale, WHITE);
-
-            {
-                float pad = rh*0.05;
-                ry = ry + img2_height*scale*4 + pad;
-                rw = img1_width*scale*2;
-                rh = rh*0.02;
-                gym_slider(&scroll, &scroll_dragging, rx, ry, rw, rh);
-            }
+            gym_layout_begin(GLO_HORZ, r, 3, 0);
+                gym_plot(plot, gym_layout_slot());
+                gym_render_nn(nn, gym_layout_slot());
+                Gym_Rect preview_slot = gym_layout_slot();
+                gym_layout_begin(GLO_VERT, preview_slot, 3, 0);
+                    gym_layout_begin(GLO_HORZ, gym_layout_slot(), 2, 0);
+                        render_texture_in_slot(original_texture1, GHA_RIGHT, GVA_BOTTOM, gym_layout_slot());
+                        render_texture_in_slot(original_texture2, GHA_LEFT, GVA_BOTTOM, gym_layout_slot());
+                    gym_layout_end();
+                    gym_layout_begin(GLO_HORZ, gym_layout_slot(), 2, 0);
+                        render_texture_in_slot(preview_texture1, GHA_RIGHT, GVA_TOP, gym_layout_slot());
+                        render_texture_in_slot(preview_texture2, GHA_LEFT, GVA_TOP, gym_layout_slot());
+                    gym_layout_end();
+                    render_texture_in_slot(preview_texture3, GHA_CENTER, GVA_CENTER, gym_layout_slot());
+                gym_layout_end();
+                {
+                    float rw = preview_slot.w;
+                    float rh = preview_slot.h*0.03;
+                    float rx = preview_slot.x;
+                    float ry = rh + preview_slot.y + preview_slot.h;
+                    gym_slider(&scroll, &scroll_dragging, rx, ry, rw, rh);
+                }
+            gym_layout_end();
 
             char buffer[256];
             snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, plot.count > 0 ? plot.items[plot.count - 1] : 0);
