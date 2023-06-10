@@ -143,17 +143,14 @@ typedef struct {
 } Gym_Layout_Stack;
 
 void gym_layout_stack_push(Gym_Layout_Stack *ls, Gym_Layout_Orient orient, Gym_Rect rect, size_t count, float gap);
-#define gls_push gym_layout_stack_push
 #define gym_layout_stack_slot(ls) (assert((ls)->count > 0), gym_layout_slot_loc(&(ls)->items[(ls)->count - 1], __FILE__, __LINE__))
-#define gls_slot gym_layout_stack_slot
 #define gym_layout_stack_pop(ls) do { assert((ls)->count > 0); (ls)->count -= 1; } while (0)
-#define gls_pop gym_layout_stack_pop
 
 static Gym_Layout_Stack default_gym_layout_stack = {0};
 
-#define gym_layout_begin(orient, rect, count, gap) gls_push(&default_gym_layout_stack, (orient), (rect), (count), (gap))
-#define gym_layout_end() gls_pop(&default_gym_layout_stack)
-#define gym_layout_slot() gls_slot(&default_gym_layout_stack)
+#define gym_layout_begin(orient, rect, count, gap) gym_layout_stack_push(&default_gym_layout_stack, (orient), (rect), (count), (gap))
+#define gym_layout_end() gym_layout_stack_pop(&default_gym_layout_stack)
+#define gym_layout_slot() gym_layout_stack_slot(&default_gym_layout_stack)
 
 #define DA_INIT_CAP 256
 #define da_append(da, item)                                                          \
