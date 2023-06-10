@@ -30,8 +30,6 @@ int main(void)
     InitWindow(width, height, "Layout");
     SetTargetFPS(60);
 
-    Gym_Layout_Stack ls = {0};
-
     while (!WindowShouldClose()) {
         float w = GetRenderWidth();
         float h = GetRenderHeight();
@@ -40,31 +38,29 @@ int main(void)
 
         BeginDrawing();
             ClearBackground(BLACK);
-            gls_push(&ls, GLO_HORZ, gym_rect(0, frame, w, h - 2*frame), 3, gap);
-                widget(gls_slot(&ls), RED);
-                widget(gls_slot(&ls), BLUE);
-                gls_push(&ls, GLO_VERT, gls_slot(&ls), 3, gap);
-                    gls_push(&ls, GLO_HORZ, gls_slot(&ls), 2, gap);
-                        gls_push(&ls, GLO_VERT, gls_slot(&ls), 2, gap);
-                           widget(gls_slot(&ls), GREEN);
-                           gls_push(&ls, GLO_HORZ, gls_slot(&ls), 2, gap);
-                              widget(gls_slot(&ls), GREEN);
-                              widget(gls_slot(&ls), GREEN);
-                           gls_pop(&ls);
-                        gls_pop(&ls);
-                        widget(gls_slot(&ls), PURPLE);
-                    gls_pop(&ls);
-                    gls_push(&ls, GLO_HORZ, gls_slot(&ls), 3, gap);
-                        widget(gls_slot(&ls), YELLOW);
-                        widget(gls_slot(&ls), YELLOW);
-                        widget(gls_slot(&ls), YELLOW);
-                    gls_pop(&ls);
-                    widget(gls_slot(&ls), PURPLE);
-                gls_pop(&ls);
-            gls_pop(&ls);
+            gym_layout_begin(GLO_HORZ, gym_rect(0, frame, w, h - 2*frame), 3, gap);
+                widget(gym_layout_slot(), RED);
+                widget(gym_layout_slot(), BLUE);
+                gym_layout_begin(GLO_VERT, gym_layout_slot(), 3, gap);
+                    gym_layout_begin(GLO_HORZ, gym_layout_slot(), 2, gap);
+                        gym_layout_begin(GLO_VERT, gym_layout_slot(), 2, gap);
+                           widget(gym_layout_slot(), GREEN);
+                           gym_layout_begin(GLO_HORZ, gym_layout_slot(), 2, gap);
+                              widget(gym_layout_slot(), GREEN);
+                              widget(gym_layout_slot(), GREEN);
+                           gym_layout_end();
+                        gym_layout_end();
+                        widget(gym_layout_slot(), PURPLE);
+                    gym_layout_end();
+                    gym_layout_begin(GLO_HORZ, gym_layout_slot(), 3, gap);
+                        widget(gym_layout_slot(), YELLOW);
+                        widget(gym_layout_slot(), YELLOW);
+                        widget(gym_layout_slot(), YELLOW);
+                    gym_layout_end();
+                    widget(gym_layout_slot(), PURPLE);
+                gym_layout_end();
+            gym_layout_end();
         EndDrawing();
-
-        assert(ls.count == 0);
     }
 
     CloseWindow();
