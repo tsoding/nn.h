@@ -164,8 +164,8 @@ static Gym_Layout_Stack default_gym_layout_stack = {0};
         (da)->items[(da)->count++] = (item);                                         \
     } while (0)
 
-void gym_render_nn(NN nn, float rx, float ry, float rw, float rh);
-void gym_plot(Gym_Plot plot, int rx, int ry, int rw, int rh);
+void gym_render_nn(NN nn, Gym_Rect r);
+void gym_plot(Gym_Plot plot, Gym_Rect r);
 void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh);
 void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, size_t stride, float low, float high);
 
@@ -607,18 +607,18 @@ void batch_process(Batch *b, size_t batch_size, NN nn, NN g, Mat t, float rate)
 
 #ifdef NN_ENABLE_GYM
 
-void gym_render_nn(NN nn, float rx, float ry, float rw, float rh)
+void gym_render_nn(NN nn, Gym_Rect r)
 {
     Color low_color        = {0xFF, 0x00, 0xFF, 0xFF};
     Color high_color       = {0x00, 0xFF, 0x00, 0xFF};
 
-    float neuron_radius = rh*0.03;
-    float layer_border_vpad = rh*0.08;
-    float layer_border_hpad = rw*0.06;
-    float nn_width = rw - 2*layer_border_hpad;
-    float nn_height = rh - 2*layer_border_vpad;
-    float nn_x = rx + rw/2 - nn_width/2;
-    float nn_y = ry + rh/2 - nn_height/2;
+    float neuron_radius = r.h*0.03;
+    float layer_border_vpad = r.h*0.08;
+    float layer_border_hpad = r.w*0.06;
+    float nn_width = r.w - 2*layer_border_hpad;
+    float nn_height = r.h - 2*layer_border_vpad;
+    float nn_x = r.x + r.w/2 - nn_width/2;
+    float nn_y = r.y + r.h/2 - nn_height/2;
     size_t arch_count = nn.count + 1;
     float layer_hpad = nn_width / arch_count;
     for (size_t l = 0; l < arch_count; ++l) {
@@ -635,7 +635,7 @@ void gym_render_nn(NN nn, float rx, float ry, float rw, float rh)
                     float cy2 = nn_y + j*layer_vpad2 + layer_vpad2/2;
                     float value = sigmoidf(MAT_AT(nn.ws[l], i, j));
                     high_color.a = floorf(255.f*value);
-                    float thick = rh*0.004f;
+                    float thick = r.h*0.004f;
                     Vector2 start = {cx1, cy1};
                     Vector2 end   = {cx2, cy2};
                     DrawLineEx(start, end, thick, ColorAlphaBlend(low_color, high_color, WHITE));
@@ -651,7 +651,7 @@ void gym_render_nn(NN nn, float rx, float ry, float rw, float rh)
     }
 }
 
-void gym_plot(Gym_Plot plot, int rx, int ry, int rw, int rh)
+void gym_plot(Gym_Plot plot, Gym_Rect r)
 {
     float min = FLT_MAX, max = FLT_MIN;
     for (size_t i = 0; i < plot.count; ++i) {
@@ -663,16 +663,16 @@ void gym_plot(Gym_Plot plot, int rx, int ry, int rw, int rh)
     size_t n = plot.count;
     if (n < 1000) n = 1000;
     for (size_t i = 0; i+1 < plot.count; ++i) {
-        float x1 = rx + (float)rw/n*i;
-        float y1 = ry + (1 - (plot.items[i] - min)/(max - min))*rh;
-        float x2 = rx + (float)rw/n*(i+1);
-        float y2 = ry + (1 - (plot.items[i+1] - min)/(max - min))*rh;
-        DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, rh*0.005, RED);
+        float x1 = r.x + r.w/n*i;
+        float y1 = r.y + (1 - (plot.items[i] - min)/(max - min))*r.h;
+        float x2 = r.x + (float)r.w/n*(i+1);
+        float y2 = r.y + (1 - (plot.items[i+1] - min)/(max - min))*r.h;
+        DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, r.h*0.005, RED);
     }
 
-    float y0 = ry + (1 - (0 - min)/(max - min))*rh;
-    DrawLineEx((Vector2){rx + 0, y0}, (Vector2){rx + rw - 1, y0}, rh*0.005, WHITE);
-    DrawText("0", rx + 0, y0 - rh*0.04, rh*0.04, WHITE);
+    float y0 = r.y + (1 - (0 - min)/(max - min))*r.h;
+    DrawLineEx((Vector2){r.x + 0, y0}, (Vector2){r.x + r.w - 1, y0}, r.h*0.005, WHITE);
+    DrawText("0", r.x + 0, y0 - r.h*0.04, r.h*0.04, WHITE);
 }
 
 void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh)

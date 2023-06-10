@@ -313,9 +313,9 @@ int main(int argc, char **argv)
             int rx = 0;
             int ry = h/2 - rh/2;
 
-            gym_plot(plot, rx, ry, rw, rh);
+            gym_plot(plot, CLITERAL(Gym_Rect) { rx, ry, rw, rh });
             rx += rw;
-            gym_render_nn(nn, rx, ry, rw, rh);
+            gym_render_nn(nn, CLITERAL(Gym_Rect) { rx, ry, rw, rh });
             rx += rw;
 
             float scale = rh*0.01;

@@ -8,19 +8,18 @@ size_t epochs_per_frame = 103;
 float rate = 1.0f;
 bool paused = true;
 
-void verify_nn_gate(Font font, NN nn, float rx, float ry, float rw, float rh)
+void verify_nn_gate(Font font, NN nn, Gym_Rect r)
 {
-    (void) rw;
     char buffer[256];
-    float s = rh*0.06;
-    float pad = rh*0.03;
+    float s = r.h*0.06;
+    float pad = r.h*0.03;
     for (size_t i = 0; i < 2; ++i) {
         for (size_t j = 0; j < 2; ++j) {
             MAT_AT(NN_INPUT(nn), 0, 0) = i;
             MAT_AT(NN_INPUT(nn), 0, 1) = j;
             nn_forward(nn);
             snprintf(buffer, sizeof(buffer), "%zu @ %zu == %f", i, j, MAT_AT(NN_OUTPUT(nn), 0, 0));
-            DrawTextEx(font, buffer, CLITERAL(Vector2){rx, ry + (i*2 + j)*(s + pad)}, s, 0, WHITE);
+            DrawTextEx(font, buffer, CLITERAL(Vector2){r.x, r.y + (i*2 + j)*(s + pad)}, s, 0, WHITE);
         }
     }
 }
@@ -94,16 +93,17 @@ int main(void)
             int w = GetRenderWidth();
             int h = GetRenderHeight();
 
-            int rw = w/3;
-            int rh = h*2/3;
-            int rx = 0;
-            int ry = h/2 - rh/2;
+            Gym_Rect r;
+            r.w = w;
+            r.h = h*2/3;
+            r.x = 0;
+            r.y = h/2 - r.h/2;
 
-            gym_plot(plot, rx, ry, rw, rh);
-            rx += rw;
-            gym_render_nn(nn, rx, ry, rw, rh);
-            rx += rw;
-            verify_nn_gate(font, nn, rx, ry, rw, rh);
+            gym_layout_begin(GLO_HORZ, r, 3, 0);
+                gym_plot(plot, gym_layout_slot());
+                gym_render_nn(nn, gym_layout_slot());
+                verify_nn_gate(font, nn, gym_layout_slot());
+            gym_layout_end();
 
             char buffer[256];
             snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, nn_cost(nn, ti, to));
