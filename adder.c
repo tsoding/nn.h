@@ -12,15 +12,15 @@ size_t batch_size = 28;
 float rate = 1.0f;
 bool paused = true;
 
-void verify_nn_adder(Font font, NN nn, float rx, float ry, float rw, float rh)
+void verify_nn_adder(Font font, NN nn, Gym_Rect r)
 {
     float s;
-    if (rw < rh) {
-        s = rw - rw*0.05;
-        ry = ry + rh/2 - s/2;
+    if (r.w < r.h) {
+        s = r.w - r.w*0.05;
+        r.y = r.y + r.h/2 - s/2;
     } else {
-        s = rh - rh*0.05;
-        rx = rx + rw/2 - s/2;
+        s = r.h - r.h*0.05;
+        r.x = r.x + r.w/2 - s/2;
     }
     size_t n = 1<<BITS;
     float cs = s/n;
@@ -41,7 +41,7 @@ void verify_nn_adder(Font font, NN nn, float rx, float ry, float rw, float rh)
             }
             bool overflow = MAT_AT(NN_OUTPUT(nn), 0, BITS) > 0.5;
 
-            Vector2 position = { rx + x*cs, ry + y*cs };
+            Vector2 position = { r.x + x*cs, r.y + y*cs };
             Vector2 size = { cs, cs };
 
             if (overflow) DrawRectangleV(position, size, DARKPURPLE);
@@ -141,16 +141,17 @@ int main(void)
             int w = GetRenderWidth();
             int h = GetRenderHeight();
 
-            int rw = w/3;
-            int rh = h*2/3;
-            int rx = 0;
-            int ry = h/2 - rh/2;
+            Gym_Rect r;
+            r.w = w;
+            r.h = h*2/3;
+            r.x = 0;
+            r.y = h/2 - r.h/2;
 
-            gym_plot(plot, CLITERAL(Gym_Rect) {rx, ry, rw, rh});
-            rx += rw;
-            gym_render_nn(nn, CLITERAL(Gym_Rect) {rx, ry, rw, rh});
-            rx += rw;
-            verify_nn_adder(font, nn, rx, ry, rw, rh);
+            gym_layout_begin(GLO_HORZ, r, 3, 0);
+                gym_plot(plot, gym_layout_slot());
+                gym_render_nn(nn, gym_layout_slot());
+                verify_nn_adder(font, nn, gym_layout_slot());
+            gym_layout_end();
 
             char buffer[256];
             snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, nn_cost(nn, ti, to));
