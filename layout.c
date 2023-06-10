@@ -20,27 +20,6 @@ void widget(Gym_Rect r, Color c)
     DrawRectangleRec(rr, c);
 }
 
-Color colors[] = {LIGHTGRAY, GRAY, DARKGRAY, YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN, SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, WHITE, MAGENTA, RAYWHITE};
-#define colors_count (sizeof(colors)/sizeof(colors[0]))
-
-size_t count = 0;
-
-void go(Gym_Layout_Stack *ls, Gym_Rect r, Gym_Layout_Orient orient, size_t level)
-{
-    if (level >= 8) {
-        widget(r, colors[rand()%colors_count]);
-        count += 1;
-        return;
-    }
-
-    size_t n = rand()%3 + 3;
-    gls_push(ls, orient, r, n, 0);
-    for (size_t i = 0; i < n; ++i) {
-        go(ls, gls_slot(ls), 1 - orient, level + 1);
-    }
-    gls_pop(ls);
-}
-
 int main(void)
 {
     size_t factor = 80;
@@ -53,23 +32,36 @@ int main(void)
 
     Gym_Layout_Stack ls = {0};
 
-    bool once = false;
-
     while (!WindowShouldClose()) {
         float w = GetRenderWidth();
         float h = GetRenderHeight();
-        float frame = h*0.05;
-        float gap = 2.0f;
+        float frame = h*0.15;
+        float gap = 10.0f;
 
         BeginDrawing();
             ClearBackground(BLACK);
-            Gym_Layout_Orient orient = GLO_HORZ;
-            srand(69);
-            go(&ls, gym_rect(0, frame, w, h - 2*frame), GLO_HORZ, 0);
-            if (!once) {
-                printf("Rect Count: %zu\n", count);
-                once = true;
-            }
+            gls_push(&ls, GLO_HORZ, gym_rect(0, frame, w, h - 2*frame), 3, gap);
+                widget(gls_slot(&ls), RED);
+                widget(gls_slot(&ls), BLUE);
+                gls_push(&ls, GLO_VERT, gls_slot(&ls), 3, gap);
+                    gls_push(&ls, GLO_HORZ, gls_slot(&ls), 2, gap);
+                        gls_push(&ls, GLO_VERT, gls_slot(&ls), 2, gap);
+                           widget(gls_slot(&ls), GREEN);
+                           gls_push(&ls, GLO_HORZ, gls_slot(&ls), 2, gap);
+                              widget(gls_slot(&ls), GREEN);
+                              widget(gls_slot(&ls), GREEN);
+                           gls_pop(&ls);
+                        gls_pop(&ls);
+                        widget(gls_slot(&ls), PURPLE);
+                    gls_pop(&ls);
+                    gls_push(&ls, GLO_HORZ, gls_slot(&ls), 3, gap);
+                        widget(gls_slot(&ls), YELLOW);
+                        widget(gls_slot(&ls), YELLOW);
+                        widget(gls_slot(&ls), YELLOW);
+                    gls_pop(&ls);
+                    widget(gls_slot(&ls), PURPLE);
+                gls_pop(&ls);
+            gls_pop(&ls);
         EndDrawing();
 
         assert(ls.count == 0);
