@@ -16,8 +16,6 @@
 
 #define NN_IMPLEMENTATION
 #define NN_ENABLE_GYM
-#define NN_BACKPROP_TRADITIONAL
-#define NN_ACT ACT_RELU
 #include "nn.h"
 
 size_t arch[] = {3, 28, 28, 9, 1};
