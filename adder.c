@@ -40,10 +40,12 @@ void verify_nn_adder(Font font, NN nn, Gym_Rect r)
                 z = z|(bit<<i);
             }
             bool overflow = MAT_AT(NN_OUTPUT(nn), 0, BITS) > 0.5;
+            bool correct = z == x + y;
 
             Vector2 position = { r.x + x*cs, r.y + y*cs };
             Vector2 size = { cs, cs };
 
+            if (correct)  DrawRectangleV(position, size, DARKGREEN);
             if (overflow) DrawRectangleV(position, size, DARKPURPLE);
 
             char buffer[256];
