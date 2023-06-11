@@ -385,7 +385,7 @@ int main(int argc, char **argv)
             r.x = 0;
             r.y = h/2 - r.h/2;
 
-            gym_layout_begin(GLO_HORZ, r, 3, 0);
+            gym_layout_begin(GLO_HORZ, r, 3, 10);
                 gym_plot(plot, gym_layout_slot());
                 gym_render_nn_weights_heatmap(nn, gym_layout_slot());
                 Gym_Rect preview_slot = gym_layout_slot();
