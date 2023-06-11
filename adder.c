@@ -149,10 +149,10 @@ int main(void)
 
             gym_layout_begin(GLO_HORZ, r, 3, 10);
                 gym_plot(plot, gym_layout_slot());
-                // gym_layout_begin(GLO_VERT, gym_layout_slot(), 2, 0);
-                    // gym_render_nn(nn, gym_layout_slot());
+                gym_layout_begin(GLO_VERT, gym_layout_slot(), 2, 0);
+                    gym_render_nn(nn, gym_layout_slot());
                     gym_render_nn_weights_heatmap(nn, gym_layout_slot());
-                // gym_layout_end();
+                gym_layout_end();
                 verify_nn_adder(font, nn, gym_layout_slot());
             gym_layout_end();
 

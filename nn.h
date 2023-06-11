@@ -611,8 +611,8 @@ void batch_process(Batch *b, size_t batch_size, NN nn, NN g, Mat t, float rate)
 
 void gym_render_nn(NN nn, Gym_Rect r)
 {
-    Color low_color        = {0xFF, 0x00, 0xFF, 0xFF};
-    Color high_color       = {0x00, 0xFF, 0x00, 0xFF};
+    Color low_color = RED;
+    Color high_color = DARKBLUE;
 
     float neuron_radius = r.h*0.03;
     float layer_border_vpad = r.h*0.08;
@@ -655,8 +655,8 @@ void gym_render_nn(NN nn, Gym_Rect r)
 
 void gym_render_mat_as_heatmap(Mat m, Gym_Rect r, size_t max_width)
 {
-    Color low_color = {0xFF, 0x00, 0xFF, 0xFF};
-    Color high_color = {0x00, 0xFF, 0x00, 0xFF};
+    Color low_color = RED;
+    Color high_color = DARKBLUE;
 
     float cell_width = r.w*m.cols/max_width/m.cols;
     float cell_height = r.h/m.rows; 
