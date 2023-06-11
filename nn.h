@@ -73,7 +73,7 @@ void mat_shuffle_rows(Mat m);
 #define MAT_PRINT(m) mat_print(m, #m, 0)
 
 typedef struct {
-    size_t count;
+    size_t count; // The amount of ws and bs matrices
     Mat *ws;
     Mat *bs;
     Mat *as; // The amount of activations is count+1
@@ -148,7 +148,7 @@ void gym_layout_stack_push(Gym_Layout_Stack *ls, Gym_Layout_Orient orient, Gym_R
 
 static Gym_Layout_Stack default_gym_layout_stack = {0};
 
-#define gym_layout_begin(orient, rect, count, gap) gym_layout_stack_push(&default_gym_layout_stack, (orient), (rect), (count), (gap))
+#define gym_layout_begin(orient, rect, count, gap) gym_layout_stack_push(&default_gym_layout_stack, orient, rect, count, gap)
 #define gym_layout_end() gym_layout_stack_pop(&default_gym_layout_stack)
 #define gym_layout_slot() gym_layout_stack_slot(&default_gym_layout_stack)
 
@@ -165,6 +165,8 @@ static Gym_Layout_Stack default_gym_layout_stack = {0};
     } while (0)
 
 void gym_render_nn(NN nn, Gym_Rect r);
+void gym_render_mat_as_heatmap(Mat m, Gym_Rect r, size_t max_width);
+void gym_render_nn_as_heatmap(NN nn, Gym_Rect r);
 void gym_plot(Gym_Plot plot, Gym_Rect r);
 void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh);
 void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, size_t stride, float low, float high);
@@ -649,6 +651,63 @@ void gym_render_nn(NN nn, Gym_Rect r)
             }
         }
     }
+}
+
+void gym_render_mat_as_heatmap(Mat m, Gym_Rect r, size_t max_width)
+{
+    Color low_color = {0xFF, 0x00, 0xFF, 0xFF};
+    Color high_color = {0x00, 0xFF, 0x00, 0xFF};
+
+    float cell_width = r.w*m.cols/max_width/m.cols;
+    float cell_height = r.h/m.rows; 
+
+    float full_width = r.w*m.cols/max_width;
+
+    for (size_t y = 0; y < m.rows; ++y) {
+        for (size_t x = 0; x < m.cols; ++x) {
+            high_color.a = floorf(255.f*sigmoidf(MAT_AT(m, y, x)));
+            Color color = ColorAlphaBlend(low_color, high_color, WHITE);
+            Gym_Rect slot = {
+                r.x + r.w/2 - full_width/2 + x*cell_width,
+                r.y + y*cell_height,
+                cell_width,
+                cell_height,
+            };
+            DrawRectangle(ceilf(slot.x), ceilf(slot.y), ceilf(slot.w), ceilf(slot.h), color);
+        }
+    }
+}
+
+void gym_render_nn_weights_heatmap(NN nn, Gym_Rect r)
+{
+    size_t max_width = 0;
+    for (size_t i = 0; i < nn.count; ++i) {
+        if (max_width < nn.ws[i].cols) {
+            max_width = nn.ws[i].cols;
+        }
+    }
+
+    gym_layout_begin(GLO_VERT, r, nn.count, 20);
+    for (size_t i = 0; i < nn.count; ++i) {
+        gym_render_mat_as_heatmap(nn.ws[i], gym_layout_slot(), max_width);
+    }
+    gym_layout_end();
+}
+
+void gym_render_nn_activations_heatmap(NN nn, Gym_Rect r)
+{
+    size_t max_width = 0;
+    for (size_t i = 0; i < nn.count + 1; ++i) {
+        if (max_width < nn.as[i].cols) {
+            max_width = nn.as[i].cols;
+        }
+    }
+
+    gym_layout_begin(GLO_VERT, r, nn.count + 1, 20);
+    for (size_t i = 0; i < nn.count + 1; ++i) {
+        gym_render_mat_as_heatmap(nn.as[i], gym_layout_slot(), max_width);
+    }
+    gym_layout_end();
 }
 
 void gym_plot(Gym_Plot plot, Gym_Rect r)

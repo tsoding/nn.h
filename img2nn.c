@@ -16,9 +16,11 @@
 
 #define NN_IMPLEMENTATION
 #define NN_ENABLE_GYM
+#define NN_BACKPROP_TRADITIONAL
+#define NN_ACT ACT_RELU
 #include "nn.h"
 
-size_t arch[] = {3, 11, 11, 9, 1};
+size_t arch[] = {3, 28, 28, 9, 1};
 size_t max_epoch = 100*1000;
 size_t batches_per_frame = 200;
 size_t batch_size = 28;
@@ -168,11 +170,12 @@ typedef enum {
     GVA_CENTER,
 } Gym_Vert_Align;
 
-void render_texture_in_slot(Texture2D texture, Gym_Horz_Align ha, Gym_Vert_Align va, Gym_Rect r)
+Vector2 render_texture_in_slot(Texture2D texture, Gym_Horz_Align ha, Gym_Vert_Align va, Gym_Rect r)
 {
     Vector2 position = {r.x, r.y};
+    float scale = 0;
     if (r.w > r.h) {
-        float scale = r.h/texture.height;
+        scale = r.h/texture.height;
         switch (ha) {
         case GHA_LEFT: break;
         case GHA_RIGHT:
@@ -183,10 +186,10 @@ void render_texture_in_slot(Texture2D texture, Gym_Horz_Align ha, Gym_Vert_Align
             position.x += r.w/2;
             position.x -= texture.width*scale/2;
             break;
-        }
+        }        
         DrawTextureEx(texture, position, 0, scale, WHITE);
     } else {
-        float scale = r.w/texture.width;
+        scale = r.w/texture.width;
         switch (va) {
         case GVA_TOP: break;
         case GVA_BOTTOM:
@@ -200,6 +203,18 @@ void render_texture_in_slot(Texture2D texture, Gym_Horz_Align ha, Gym_Vert_Align
         }
         DrawTextureEx(texture, position, 0, scale, WHITE);
     }
+
+    Vector2 mouse_position = GetMousePosition();
+    Rectangle hitbox = {
+        position.x,
+        position.y,
+        texture.width*scale,
+        texture.height*scale,
+    };
+    return CLITERAL(Vector2) {
+        (mouse_position.x - position.x)/hitbox.width,
+        (mouse_position.y - position.y)/hitbox.height
+    };
 }
 
 int main(int argc, char **argv)
@@ -374,7 +389,7 @@ int main(int argc, char **argv)
 
             gym_layout_begin(GLO_HORZ, r, 3, 0);
                 gym_plot(plot, gym_layout_slot());
-                gym_render_nn(nn, gym_layout_slot());
+                gym_render_nn_weights_heatmap(nn, gym_layout_slot());
                 Gym_Rect preview_slot = gym_layout_slot();
                 gym_layout_begin(GLO_VERT, preview_slot, 3, 0);
                     gym_layout_begin(GLO_HORZ, gym_layout_slot(), 2, 0);
