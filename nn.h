@@ -811,6 +811,11 @@ Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
 
     Gym_Rect r = {0};
 
+// [............][............][............][............][............] width  14, gap  0
+// [.......]          [..]          [..]          [..]          [.......] width 4/9, gap 10
+// [....]          [....]          [....]          [....]          [....] width   6, gap 10
+// fair_shrink = gap * (count - 1) / count;                10 * 4 / 5 = 8
+
     switch (l->orient) {
     case GLO_HORZ:
         r.w = l->rect.w/l->count;
@@ -818,15 +823,8 @@ Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
         r.x = l->rect.x + l->i*r.w;
         r.y = l->rect.y;
 
-        if (l->i == 0) { // First
-            r.w -= l->gap/2;
-        } else if (l->i >= l->count - 1) { // Last
-            r.x += l->gap/2;
-            r.w -= l->gap/2;
-        } else { // Middle
-            r.x += l->gap/2;
-            r.w -= l->gap;
-        }
+        r.x += l->gap / l->count * l->i;
+        r.w -= l->gap / l->count * (l->count - 1);
 
         break;
 
@@ -836,15 +834,8 @@ Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
         r.x = l->rect.x;
         r.y = l->rect.y + l->i*r.h;
 
-        if (l->i == 0) { // First
-            r.h -= l->gap/2;
-        } else if (l->i >= l->count - 1) { // Last
-            r.y += l->gap/2;
-            r.h -= l->gap/2;
-        } else { // Middle
-            r.y += l->gap/2;
-            r.h -= l->gap;
-        }
+        r.y += l->gap / l->count * l->i;
+        r.h -= l->gap / l->count * (l->count - 1);
 
         break;
 
