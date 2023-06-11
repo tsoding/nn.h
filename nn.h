@@ -166,7 +166,8 @@ static Gym_Layout_Stack default_gym_layout_stack = {0};
 
 void gym_render_nn(NN nn, Gym_Rect r);
 void gym_render_mat_as_heatmap(Mat m, Gym_Rect r, size_t max_width);
-void gym_render_nn_as_heatmap(NN nn, Gym_Rect r);
+void gym_render_nn_weights_heatmap(NN nn, Gym_Rect r);
+void gym_render_nn_activations_heatmap(NN nn, Gym_Rect r);
 void gym_plot(Gym_Plot plot, Gym_Rect r);
 void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh);
 void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, size_t stride, float low, float high);
