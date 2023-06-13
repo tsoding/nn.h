@@ -2,7 +2,7 @@
 
 set -xe
 
-CFLAGS="-O3 -Wall -Wextra -I./thirdparty/ `pkg-config --cflags raylib`"
+CFLAGS="-O3 -Wall -Wextra -ggdb -I./thirdparty/ `pkg-config --cflags raylib`"
 LIBS="-lm `pkg-config --libs raylib` -lglfw -ldl -lpthread"
 
 clang $CFLAGS -o xor xor.c $LIBS
