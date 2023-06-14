@@ -660,7 +660,7 @@ void gym_render_mat_as_heatmap(Mat m, Gym_Rect r, size_t max_width)
     Color high_color = DARKBLUE;
 
     float cell_width = r.w*m.cols/max_width/m.cols;
-    float cell_height = r.h/m.rows; 
+    float cell_height = r.h/m.rows;
 
     float full_width = r.w*m.cols/max_width;
 
@@ -813,39 +813,25 @@ Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
 
     switch (l->orient) {
     case GLO_HORZ:
-        r.w = l->rect.w/l->count;
+        // cell_width = (l->rect.w - l->gap*(l->count - 1))/l->count
+        //              l->rect.w/l->count - l->gap*(l->count - 1)/l->count
+        //              l->rect.w/l->count - (l->gap*l->count - l->gap)/l->count
+        //              l->rect.w/l->count - (l->gap*l->count/l->count - l->gap/l->count)
+        //              l->rect.w/l->count - (l->gap - l->gap/l->count)
+        //              l->rect.w/l->count - l->gap + l->gap/l->count
+        //              (l->rect.w + l->gap)/l->count - l->gap
+
+        r.w = (l->rect.w + l->gap)/l->count - l->gap;
         r.h = l->rect.h;
-        r.x = l->rect.x + l->i*r.w;
+        r.x = l->rect.x + l->i*(r.w + l->gap);
         r.y = l->rect.y;
-
-        if (l->i == 0) { // First
-            r.w -= l->gap/2;
-        } else if (l->i >= l->count - 1) { // Last
-            r.x += l->gap/2;
-            r.w -= l->gap/2;
-        } else { // Middle
-            r.x += l->gap/2;
-            r.w -= l->gap;
-        }
-
         break;
 
     case GLO_VERT:
         r.w = l->rect.w;
-        r.h = l->rect.h/l->count;
+        r.h = (l->rect.h + l->gap)/l->count - l->gap;
         r.x = l->rect.x;
-        r.y = l->rect.y + l->i*r.h;
-
-        if (l->i == 0) { // First
-            r.h -= l->gap/2;
-        } else if (l->i >= l->count - 1) { // Last
-            r.y += l->gap/2;
-            r.h -= l->gap/2;
-        } else { // Middle
-            r.y += l->gap/2;
-            r.h -= l->gap;
-        }
-
+        r.y = l->rect.y + l->i*(r.h + l->gap);
         break;
 
     default:
