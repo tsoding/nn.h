@@ -813,15 +813,7 @@ Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
 
     switch (l->orient) {
     case GLO_HORZ:
-        // cell_width = (l->rect.w - l->gap*(l->count - 1))/l->count
-        //              l->rect.w/l->count - l->gap*(l->count - 1)/l->count
-        //              l->rect.w/l->count - (l->gap*l->count - l->gap)/l->count
-        //              l->rect.w/l->count - (l->gap*l->count/l->count - l->gap/l->count)
-        //              l->rect.w/l->count - (l->gap - l->gap/l->count)
-        //              l->rect.w/l->count - l->gap + l->gap/l->count
-        //              (l->rect.w + l->gap)/l->count - l->gap
-
-        r.w = (l->rect.w + l->gap)/l->count - l->gap;
+        r.w = (l->rect.w - l->gap*(l->count - 1))/l->count;
         r.h = l->rect.h;
         r.x = l->rect.x + l->i*(r.w + l->gap);
         r.y = l->rect.y;
@@ -829,7 +821,7 @@ Gym_Rect gym_layout_slot_loc(Gym_Layout *l, const char *file_path, int line)
 
     case GLO_VERT:
         r.w = l->rect.w;
-        r.h = (l->rect.h + l->gap)/l->count - l->gap;
+        r.h = (l->rect.h - l->gap*(l->count - 1))/l->count;
         r.x = l->rect.x;
         r.y = l->rect.y + l->i*(r.h + l->gap);
         break;
