@@ -1,5 +1,2 @@
-xor
-adder
-img2nn
-layout
+build/
 *.swp

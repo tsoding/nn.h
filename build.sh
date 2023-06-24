@@ -2,10 +2,12 @@
 
 set -xe
 
-CFLAGS="-O3 -Wall -Wextra -ggdb -I./thirdparty/ `pkg-config --cflags raylib`"
+CFLAGS="-O3 -Wall -Wextra -ggdb -I./thirdparty/ -I. `pkg-config --cflags raylib`"
 LIBS="-lm `pkg-config --libs raylib` -lglfw -ldl -lpthread"
 
-clang $CFLAGS -o xor xor.c $LIBS
-clang $CFLAGS -o adder adder.c $LIBS
-clang $CFLAGS -o img2nn img2nn.c $LIBS
-clang $CFLAGS -o layout layout.c $LIBS
+mkdir -p ./build/demos
+
+clang $CFLAGS -o ./build/demos/xor demos/xor.c $LIBS
+clang $CFLAGS -o ./build/demos/adder demos/adder.c $LIBS
+clang $CFLAGS -o ./build/demos/img2nn demos/img2nn.c $LIBS
+clang $CFLAGS -o ./build/demos/layout demos/layout.c $LIBS
