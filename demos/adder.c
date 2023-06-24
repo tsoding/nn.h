@@ -1,5 +1,7 @@
+#define GYM_IMPLEMENTATION
+#include "gym.h"
+
 #define NN_IMPLEMENTATION
-#define NN_ENABLE_GYM
 #include "nn.h"
 
 #define BITS 5

@@ -14,8 +14,10 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
+#define GYM_IMPLEMENTATION
+#include "gym.h"
+
 #define NN_IMPLEMENTATION
-#define NN_ENABLE_GYM
 #include "nn.h"
 
 size_t arch[] = {3, 28, 28, 9, 1};
@@ -184,7 +186,7 @@ Vector2 render_texture_in_slot(Texture2D texture, Gym_Horz_Align ha, Gym_Vert_Al
             position.x += r.w/2;
             position.x -= texture.width*scale/2;
             break;
-        }        
+        }
         DrawTextureEx(texture, position, 0, scale, WHITE);
     } else {
         scale = r.w/texture.width;

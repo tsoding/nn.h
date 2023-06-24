@@ -5,8 +5,10 @@
 
 #include <raylib.h>
 
+#define GYM_IMPLEMENTATION
+#include "gym.h"
+
 #define NN_IMPLEMENTATION
-#define NN_ENABLE_GYM
 #include "nn.h"
 
 void widget(Gym_Rect r, Color c)
