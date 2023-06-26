@@ -413,7 +413,7 @@ int main(int argc, char **argv)
             gym_layout_end();
 
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f, Temporary Memory: %zu\n", epoch, max_epoch, rate, plot.count > 0 ? plot.items[plot.count - 1] : 0, temp.size);
+            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f, Temporary Memory: %zu\n", epoch, max_epoch, rate, plot.count > 0 ? plot.items[plot.count - 1] : 0, region_occupied_bytes(&temp));
             DrawTextEx(font, buffer, CLITERAL(Vector2) {}, h*0.04, 0, WHITE);
             gym_slider(&rate, &rate_dragging, 0, h*0.08, w, h*0.02);
         }

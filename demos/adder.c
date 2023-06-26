@@ -162,7 +162,7 @@ int main(void)
             gym_layout_end();
 
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f, Temporary Memory: %zu\n", epoch, max_epoch, rate, nn_cost(nn, ti, to), temp.size);
+            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f, Temporary Memory: %zu\n", epoch, max_epoch, rate, nn_cost(nn, ti, to), region_occupied_bytes(&temp));
             DrawTextEx(font, buffer, CLITERAL(Vector2){}, h*0.04, 0, WHITE);
         }
         EndDrawing();

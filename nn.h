@@ -52,12 +52,15 @@ float dactf(float y, Act act);
 typedef struct {
     size_t capacity;
     size_t size;
-    char *data;
+    uintptr_t *words;
 } Region;
 
-Region region_alloc_alloc(size_t capacity);
-void *region_alloc(Region *r, size_t size);
-#define region_reset(r) (r)->size = 0
+// capacity is in bytes, but it can allocate more just to keep things
+// word aligned
+Region region_alloc_alloc(size_t capacity_bytes);
+void *region_alloc(Region *r, size_t size_bytes);
+#define region_reset(r) (NN_ASSERT((r) != NULL), (r)->size = 0)
+#define region_occupied_bytes(r) (NN_ASSERT((r) != NULL), (r)->size*sizeof(*(r)->words))
 
 typedef struct {
     size_t rows;
@@ -557,24 +560,30 @@ void batch_process(Region *r, Batch *b, size_t batch_size, NN nn, Mat t, float r
     }
 }
 
-Region region_alloc_alloc(size_t capacity)
+Region region_alloc_alloc(size_t capacity_bytes)
 {
-    void *data = NN_MALLOC(capacity);
-    NN_ASSERT(data != NULL);
-    Region r = {
-        .capacity = capacity,
-        .data = data
-    };
+    Region r = {0};
+
+    size_t word_size = sizeof(*r.words);
+    size_t capacity_words = (capacity_bytes + word_size - 1)/word_size;
+
+    void *words = NN_MALLOC(capacity_words*word_size);
+    NN_ASSERT(words != NULL);
+    r.capacity = capacity_words;
+    r.words = words;
     return r;
 }
 
-void *region_alloc(Region *r, size_t size)
+void *region_alloc(Region *r, size_t size_bytes)
 {
-    if (r == NULL) return NN_MALLOC(size);
-    NN_ASSERT(r->size + size <= r->capacity);
-    if (r->size + size > r->capacity) return NULL;
-    void *result = &r->data[r->size];
-    r->size += size;
+    if (r == NULL) return NN_MALLOC(size_bytes);
+    size_t word_size = sizeof(*r->words);
+    size_t size_words = (size_bytes + word_size - 1)/word_size;
+
+    NN_ASSERT(r->size + size_words <= r->capacity);
+    if (r->size + size_words > r->capacity) return NULL;
+    void *result = &r->words[r->size];
+    r->size += size_words;
     return result;
 }
 
