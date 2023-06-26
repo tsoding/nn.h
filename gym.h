@@ -97,14 +97,13 @@ void gym_render_nn(NN nn, Gym_Rect r)
     float nn_height = r.h - 2*layer_border_vpad;
     float nn_x = r.x + r.w/2 - nn_width/2;
     float nn_y = r.y + r.h/2 - nn_height/2;
-    size_t arch_count = nn.count + 1;
-    float layer_hpad = nn_width / arch_count;
-    for (size_t l = 0; l < arch_count; ++l) {
+    float layer_hpad = nn_width / nn.arch_count;
+    for (size_t l = 0; l < nn.arch_count; ++l) {
         float layer_vpad1 = nn_height / nn.as[l].cols;
         for (size_t i = 0; i < nn.as[l].cols; ++i) {
             float cx1 = nn_x + l*layer_hpad + layer_hpad/2;
             float cy1 = nn_y + i*layer_vpad1 + layer_vpad1/2;
-            if (l+1 < arch_count) {
+            if (l+1 < nn.arch_count) {
                 float layer_vpad2 = nn_height / nn.as[l+1].cols;
                 for (size_t j = 0; j < nn.as[l+1].cols; ++j) {
                     // i - rows of ws
@@ -157,14 +156,14 @@ void gym_render_mat_as_heatmap(Mat m, Gym_Rect r, size_t max_width)
 void gym_render_nn_weights_heatmap(NN nn, Gym_Rect r)
 {
     size_t max_width = 0;
-    for (size_t i = 0; i < nn.count; ++i) {
+    for (size_t i = 0; i < nn.arch_count - 1; ++i) {
         if (max_width < nn.ws[i].cols) {
             max_width = nn.ws[i].cols;
         }
     }
 
-    gym_layout_begin(GLO_VERT, r, nn.count, 20);
-    for (size_t i = 0; i < nn.count; ++i) {
+    gym_layout_begin(GLO_VERT, r, nn.arch_count - 1, 20);
+    for (size_t i = 0; i < nn.arch_count - 1; ++i) {
         gym_render_mat_as_heatmap(nn.ws[i], gym_layout_slot(), max_width);
     }
     gym_layout_end();
@@ -173,14 +172,14 @@ void gym_render_nn_weights_heatmap(NN nn, Gym_Rect r)
 void gym_render_nn_activations_heatmap(NN nn, Gym_Rect r)
 {
     size_t max_width = 0;
-    for (size_t i = 0; i < nn.count + 1; ++i) {
+    for (size_t i = 0; i < nn.arch_count; ++i) {
         if (max_width < nn.as[i].cols) {
             max_width = nn.as[i].cols;
         }
     }
 
-    gym_layout_begin(GLO_VERT, r, nn.count + 1, 20);
-    for (size_t i = 0; i < nn.count + 1; ++i) {
+    gym_layout_begin(GLO_VERT, r, nn.arch_count, 20);
+    for (size_t i = 0; i < nn.arch_count; ++i) {
         gym_render_mat_as_heatmap(nn.as[i], gym_layout_slot(), max_width);
     }
     gym_layout_end();

@@ -67,9 +67,11 @@ void verify_nn_adder(Font font, NN nn, Gym_Rect r)
 
 int main(void)
 {
+    Region temp = region_alloc_alloc(256*1024*1024);
+
     size_t n = (1<<BITS);
     size_t rows = n*n;
-    Mat t  = mat_alloc(rows, 2*BITS + BITS + 1);
+    Mat t  = mat_alloc(NULL, rows, 2*BITS + BITS + 1);
     Mat ti = {
         .es = &MAT_AT(t, 0, 0),
         .rows = t.rows,
@@ -101,8 +103,7 @@ int main(void)
         }
     }
 
-    NN nn = nn_alloc(arch, ARRAY_LEN(arch));
-    NN g = nn_alloc(arch, ARRAY_LEN(arch));
+    NN nn = nn_alloc(NULL, arch, ARRAY_LEN(arch));
     nn_rand(nn, -1, 1);
 
     size_t WINDOW_FACTOR = 80;
@@ -130,7 +131,7 @@ int main(void)
         }
 
         for (size_t i = 0; i < batches_per_frame && !paused && epoch < max_epoch; ++i) {
-            batch_process(&batch, batch_size, nn, g, t, rate);
+            batch_process(&temp, &batch, batch_size, nn, t, rate);
             if (batch.finished) {
                 epoch += 1;
                 da_append(&plot, batch.cost);
@@ -161,10 +162,12 @@ int main(void)
             gym_layout_end();
 
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, nn_cost(nn, ti, to));
+            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f, Temporary Memory: %zu\n", epoch, max_epoch, rate, nn_cost(nn, ti, to), temp.size);
             DrawTextEx(font, buffer, CLITERAL(Vector2){}, h*0.04, 0, WHITE);
         }
         EndDrawing();
+
+        region_reset(&temp);
     }
 
 

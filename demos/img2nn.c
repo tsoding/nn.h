@@ -219,6 +219,8 @@ Vector2 render_texture_in_slot(Texture2D texture, Gym_Horz_Align ha, Gym_Vert_Al
 
 int main(int argc, char **argv)
 {
+    Region temp = region_alloc_alloc(256*1024*1024);
+
     const char *program = args_shift(&argc, &argv);
 
     if (argc <= 0) {
@@ -260,10 +262,9 @@ int main(int argc, char **argv)
     printf("%s size %dx%d %d bits\n", img1_file_path, img1_width, img1_height, img1_comp*8);
     printf("%s size %dx%d %d bits\n", img2_file_path, img2_width, img2_height, img2_comp*8);
 
-    NN nn = nn_alloc(arch, ARRAY_LEN(arch));
-    NN g = nn_alloc(arch, ARRAY_LEN(arch));
+    NN nn = nn_alloc(NULL, arch, ARRAY_LEN(arch));
 
-    Mat t = mat_alloc(img1_width*img1_height + img2_width*img2_height, NN_INPUT(nn).cols + NN_OUTPUT(nn).cols);
+    Mat t = mat_alloc(NULL, img1_width*img1_height + img2_width*img2_height, NN_INPUT(nn).cols + NN_OUTPUT(nn).cols);
     for (int y = 0; y < img1_height; ++y) {
         for (int x = 0; x < img1_width; ++x) {
             size_t i = y*img1_width + x;
@@ -354,7 +355,7 @@ int main(int argc, char **argv)
         }
 
         for (size_t i = 0; i < batches_per_frame && !paused && epoch < max_epoch; ++i) {
-            batch_process(&batch, batch_size, nn, g, t, rate);
+            batch_process(&temp, &batch, batch_size, nn, t, rate);
             if (batch.finished) {
                 epoch += 1;
                 da_append(&plot, batch.cost);
@@ -412,11 +413,13 @@ int main(int argc, char **argv)
             gym_layout_end();
 
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f", epoch, max_epoch, rate, plot.count > 0 ? plot.items[plot.count - 1] : 0);
+            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f, Temporary Memory: %zu\n", epoch, max_epoch, rate, plot.count > 0 ? plot.items[plot.count - 1] : 0, temp.size);
             DrawTextEx(font, buffer, CLITERAL(Vector2) {}, h*0.04, 0, WHITE);
             gym_slider(&rate, &rate_dragging, 0, h*0.08, w, h*0.02);
         }
         EndDrawing();
+
+        region_reset(&temp);
     }
 
     return 0;
