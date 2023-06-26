@@ -112,6 +112,9 @@ void nn_zero(NN nn);
 void nn_print(NN nn, const char *name);
 #define NN_PRINT(nn) nn_print(nn, #nn);
 void nn_rand(NN nn, float low, float high);
+// TODO: make nn_forward signature more natural
+//
+// Something more like `Mat nn_forward(NN nn, Mat in)`
 void nn_forward(NN nn);
 float nn_cost(NN nn, Mat ti, Mat to);
 NN nn_finite_diff(Region *r, NN nn, Mat ti, Mat to, float eps);
