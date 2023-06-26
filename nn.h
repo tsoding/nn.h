@@ -85,6 +85,14 @@ void mat_print(Mat m, const char *name, size_t padding);
 void mat_shuffle_rows(Mat m);
 #define MAT_PRINT(m) mat_print(m, #m, 0)
 
+// TODO: introduce separate types for Row Vectors
+//
+// There are quite a bit of situations when we want to have specifically Row vectors.
+// But since we don't have them we denote them with 1xN matrices. Examples are biases
+// and activations.
+//
+// We may also introduce Column Vectors in the future if needed
+
 typedef struct {
     size_t *arch;
     size_t arch_count;
