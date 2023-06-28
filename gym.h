@@ -59,6 +59,7 @@ static Gym_Layout_Stack default_gym_layout_stack = {0};
 
 #define gym_layout_begin(orient, rect, count, gap) gym_layout_stack_push(&default_gym_layout_stack, orient, rect, count, gap)
 #define gym_layout_end() gym_layout_stack_pop(&default_gym_layout_stack)
+// TODO: allow a single slot to take up several slots
 #define gym_layout_slot() gym_layout_stack_slot(&default_gym_layout_stack)
 
 #define DA_INIT_CAP 256
