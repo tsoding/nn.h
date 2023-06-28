@@ -15,6 +15,9 @@
 #define GYM_ASSERT NN_ASSERT
 #endif // GYM_ASSERT
 
+// The Tsoding Background Color
+#define GYM_BACKGROUND CLITERAL(Color) { 0x18, 0x18, 0x18, 0xFF }
+
 typedef struct {
     float x;
     float y;

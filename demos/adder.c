@@ -140,8 +140,7 @@ int main(void)
         }
 
         BeginDrawing();
-        Color background_color = {0x18, 0x18, 0x18, 0xFF};
-        ClearBackground(background_color);
+        ClearBackground(GYM_BACKGROUND);
         {
             int w = GetRenderWidth();
             int h = GetRenderHeight();

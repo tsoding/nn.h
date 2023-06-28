@@ -376,8 +376,7 @@ int main(int argc, char **argv)
         UpdateTexture(preview_texture3, preview_image3.data);
 
         BeginDrawing();
-        Color background_color = {0x18, 0x18, 0x18, 0xFF};
-        ClearBackground(background_color);
+        ClearBackground(GYM_BACKGROUND);
         {
             int w = GetRenderWidth();
             int h = GetRenderHeight();

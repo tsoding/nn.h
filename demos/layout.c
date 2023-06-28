@@ -39,7 +39,7 @@ int main(void)
         float gap = 10.0f;
 
         BeginDrawing();
-            ClearBackground(BLACK);
+            ClearBackground(GYM_BACKGROUND);
             gym_layout_begin(GLO_HORZ, gym_rect(0, frame, w, h - 2*frame), 3, gap);
                 widget(gym_layout_slot(), RED);
                 widget(gym_layout_slot(), BLUE);
