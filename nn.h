@@ -1,6 +1,9 @@
 #ifndef NN_H_
 #define NN_H_
 
+// TODO: make sure nn.h/gym.h is compilable with C++ compiler
+// TODO: introduce NNDEF macro for every definition of nn.h
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
