@@ -63,7 +63,7 @@ void render_single_out_image(NN nn, float a)
         py = out_height/2 - size/2;
     }
 
-    MAT_AT(NN_INPUT(nn), 0, 2) = a;
+    ROW_AT(NN_INPUT(nn), 2) = a;
     gym_nn_image_grayscale(nn, &out_pixels[py*out_width + px], size, size, out_width, 0, 1);
 }
 
@@ -363,15 +363,15 @@ int main(int argc, char **argv)
             }
         }
 
-        MAT_AT(NN_INPUT(nn), 0, 2) = 0.f;
+        ROW_AT(NN_INPUT(nn), 2) = 0.f;
         gym_nn_image_grayscale(nn, preview_image1.data, preview_image1.width, preview_image1.height, preview_image1.width, 0, 1);
         UpdateTexture(preview_texture1, preview_image1.data);
 
-        MAT_AT(NN_INPUT(nn), 0, 2) = 1.f;
+        ROW_AT(NN_INPUT(nn), 2) = 1.f;
         gym_nn_image_grayscale(nn, preview_image2.data, preview_image2.width, preview_image2.height, preview_image2.width, 0, 1);
         UpdateTexture(preview_texture2, preview_image2.data);
 
-        MAT_AT(NN_INPUT(nn), 0, 2) = scroll;
+        ROW_AT(NN_INPUT(nn), 2) = scroll;
         gym_nn_image_grayscale(nn, preview_image3.data, preview_image3.width, preview_image3.height, preview_image3.width, 0, 1);
         UpdateTexture(preview_texture3, preview_image3.data);
 

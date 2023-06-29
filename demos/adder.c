@@ -30,18 +30,18 @@ void verify_nn_adder(Font font, NN nn, Gym_Rect r)
     for (size_t x = 0; x < n; ++x) {
         for (size_t y = 0; y < n; ++y) {
             for (size_t i = 0; i < BITS; ++i) {
-                MAT_AT(NN_INPUT(nn), 0, i)        = (x>>i)&1;
-                MAT_AT(NN_INPUT(nn), 0, i + BITS) = (y>>i)&1;
+                ROW_AT(NN_INPUT(nn), i)        = (x>>i)&1;
+                ROW_AT(NN_INPUT(nn), i + BITS) = (y>>i)&1;
             }
 
             nn_forward(nn);
 
             size_t z = 0.0f;
             for (size_t i = 0; i < BITS; ++i) {
-                size_t bit = MAT_AT(NN_OUTPUT(nn), 0, i) > 0.5;
+                size_t bit = ROW_AT(NN_OUTPUT(nn), i) > 0.5;
                 z = z|(bit<<i);
             }
-            bool overflow = MAT_AT(NN_OUTPUT(nn), 0, BITS) > 0.5;
+            bool overflow = ROW_AT(NN_OUTPUT(nn), BITS) > 0.5;
             bool correct = z == x + y;
 
             Vector2 position = { r.x + x*cs, r.y + y*cs };
@@ -73,13 +73,13 @@ int main(void)
     size_t rows = n*n;
     Mat t  = mat_alloc(NULL, rows, 2*BITS + BITS + 1);
     Mat ti = {
-        .es = &MAT_AT(t, 0, 0),
+        .elements = &MAT_AT(t, 0, 0),
         .rows = t.rows,
         .cols = 2*BITS,
         .stride = t.stride,
     };
     Mat to = {
-        .es = &MAT_AT(t, 0, 2*BITS),
+        .elements = &MAT_AT(t, 0, 2*BITS),
         .rows = t.rows,
         .cols = BITS + 1,
         .stride = t.stride,

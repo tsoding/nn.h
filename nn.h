@@ -69,17 +69,32 @@ typedef struct {
     size_t rows;
     size_t cols;
     size_t stride;
-    float *es;
+    float *elements;
 } Mat;
 
-#define MAT_AT(m, i, j) (m).es[(i)*(m).stride + (j)]
+typedef struct {
+    size_t cols;
+    float *elements;
+} Row;
+
+#define ROW_AT(row, col) (row).elements[col]
+
+Mat row_as_mat(Row row);
+#define row_alloc(r, cols) mat_row(mat_alloc(r, 1, cols), 0)
+Row row_slice(Row row, size_t i, size_t cols);
+#define row_rand(row, low, high) mat_rand(row_as_mat(row), low, high)
+#define row_fill(row, x) mat_fill(row_as_mat(row), x);
+#define row_print(row, name, padding) mat_print(row_as_mat(row), name, padding)
+#define row_copy(dst, src) mat_copy(row_as_mat(dst), row_as_mat(src))
+
+#define MAT_AT(m, i, j) (m).elements[(i)*(m).stride + (j)]
 
 Mat mat_alloc(Region *r, size_t rows, size_t cols);
 void mat_save(FILE *out, Mat m);
 Mat mat_load(FILE *in, Region *r);
 void mat_fill(Mat m, float x);
 void mat_rand(Mat m, float low, float high);
-Mat mat_row(Mat m, size_t row);
+Row mat_row(Mat m, size_t row);
 void mat_copy(Mat dst, Mat src);
 void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
@@ -88,23 +103,15 @@ void mat_print(Mat m, const char *name, size_t padding);
 void mat_shuffle_rows(Mat m);
 #define MAT_PRINT(m) mat_print(m, #m, 0)
 
-// TODO: introduce separate types for Row Vectors
-//
-// There are quite a bit of situations when we want to have specifically Row vectors.
-// But since we don't have them we denote them with 1xN matrices. Examples are biases
-// and activations.
-//
-// We may also introduce Column Vectors in the future if needed
-
 typedef struct {
     size_t *arch;
     size_t arch_count;
     Mat *ws; // The amount of activations is arch_count-1
-    Mat *bs; // The amount of activations is arch_count-1
+    Row *bs; // The amount of activations is arch_count-1
 
     // TODO: maybe remove these? It would be better to allocate them in a
     // temporary region during the actual forwarding
-    Mat *as;
+    Row *as;
 } NN;
 
 #define NN_INPUT(nn) (NN_ASSERT((nn).arch_count > 0), (nn).as[0])
@@ -188,8 +195,8 @@ Mat mat_alloc(Region *r, size_t rows, size_t cols)
     m.rows = rows;
     m.cols = cols;
     m.stride = cols;
-    m.es = region_alloc(r, sizeof(*m.es)*rows*cols);
-    NN_ASSERT(m.es != NULL);
+    m.elements = region_alloc(r, sizeof(*m.elements)*rows*cols);
+    NN_ASSERT(m.elements != NULL);
     return m;
 }
 
@@ -200,9 +207,9 @@ void mat_save(FILE *out, Mat m)
     fwrite(&m.rows, sizeof(m.rows), 1, out);
     fwrite(&m.cols, sizeof(m.cols), 1, out);
     for (size_t i = 0; i < m.rows; ++i) {
-        size_t n = fwrite(&MAT_AT(m, i, 0), sizeof(*m.es), m.cols, out);
+        size_t n = fwrite(&MAT_AT(m, i, 0), sizeof(*m.elements), m.cols, out);
         while (n < m.cols && !ferror(out)) {
-            size_t k = fwrite(m.es + n, sizeof(*m.es), m.cols - n, out);
+            size_t k = fwrite(m.elements + n, sizeof(*m.elements), m.cols - n, out);
             n += k;
         }
     }
@@ -218,9 +225,9 @@ Mat mat_load(FILE *in, Region *r)
     fread(&cols, sizeof(cols), 1, in);
     Mat m = mat_alloc(r, rows, cols);
 
-    size_t n = fread(m.es, sizeof(*m.es), rows*cols, in);
+    size_t n = fread(m.elements, sizeof(*m.elements), rows*cols, in);
     while (n < rows*cols && !ferror(in)) {
-        size_t k = fread(m.es, sizeof(*m.es) + n, rows*cols - n, in);
+        size_t k = fread(m.elements, sizeof(*m.elements) + n, rows*cols - n, in);
         n += k;
     }
 
@@ -244,13 +251,11 @@ void mat_dot(Mat dst, Mat a, Mat b)
     }
 }
 
-Mat mat_row(Mat m, size_t row)
+Row mat_row(Mat m, size_t row)
 {
-    return (Mat){
-        .rows = 1,
+    return (Row) {
         .cols = m.cols,
-        .stride = m.stride,
-        .es = &MAT_AT(m, row, 0),
+        .elements = &MAT_AT(m, row, 0),
     };
 }
 
@@ -331,11 +336,11 @@ NN nn_alloc(Region *r, size_t *arch, size_t arch_count)
     nn.as = region_alloc(r, sizeof(*nn.as)*nn.arch_count);
     NN_ASSERT(nn.as != NULL);
 
-    nn.as[0] = mat_alloc(r, 1, arch[0]);
+    nn.as[0] = row_alloc(r, arch[0]);
     for (size_t i = 1; i < arch_count; ++i) {
         nn.ws[i-1] = mat_alloc(r, nn.as[i-1].cols, arch[i]);
-        nn.bs[i-1] = mat_alloc(r, 1, arch[i]);
-        nn.as[i]   = mat_alloc(r, 1, arch[i]);
+        nn.bs[i-1] = row_alloc(r, arch[i]);
+        nn.as[i]   = row_alloc(r, arch[i]);
     }
 
     return nn;
@@ -345,10 +350,10 @@ void nn_zero(NN nn)
 {
     for (size_t i = 0; i < nn.arch_count - 1; ++i) {
         mat_fill(nn.ws[i], 0);
-        mat_fill(nn.bs[i], 0);
-        mat_fill(nn.as[i], 0);
+        row_fill(nn.bs[i], 0);
+        row_fill(nn.as[i], 0);
     }
-    mat_fill(nn.as[nn.arch_count - 1], 0);
+    row_fill(nn.as[nn.arch_count - 1], 0);
 }
 
 void nn_print(NN nn, const char *name)
@@ -359,7 +364,7 @@ void nn_print(NN nn, const char *name)
         snprintf(buf, sizeof(buf), "ws%zu", i);
         mat_print(nn.ws[i], buf, 4);
         snprintf(buf, sizeof(buf), "bs%zu", i);
-        mat_print(nn.bs[i], buf, 4);
+        row_print(nn.bs[i], buf, 4);
     }
     printf("]\n");
 }
@@ -368,16 +373,16 @@ void nn_rand(NN nn, float low, float high)
 {
     for (size_t i = 0; i < nn.arch_count-1; ++i) {
         mat_rand(nn.ws[i], low, high);
-        mat_rand(nn.bs[i], low, high);
+        row_rand(nn.bs[i], low, high);
     }
 }
 
 void nn_forward(NN nn)
 {
     for (size_t i = 0; i < nn.arch_count-1; ++i) {
-        mat_dot(nn.as[i+1], nn.as[i], nn.ws[i]);
-        mat_sum(nn.as[i+1], nn.bs[i]);
-        mat_act(nn.as[i+1]);
+        mat_dot(row_as_mat(nn.as[i+1]), row_as_mat(nn.as[i]), nn.ws[i]);
+        mat_sum(row_as_mat(nn.as[i+1]), row_as_mat(nn.bs[i]));
+        mat_act(row_as_mat(nn.as[i+1]));
     }
 }
 
@@ -389,14 +394,14 @@ float nn_cost(NN nn, Mat ti, Mat to)
 
     float c = 0;
     for (size_t i = 0; i < n; ++i) {
-        Mat x = mat_row(ti, i);
-        Mat y = mat_row(to, i);
+        Row x = mat_row(ti, i);
+        Row y = mat_row(to, i);
 
-        mat_copy(NN_INPUT(nn), x);
+        row_copy(NN_INPUT(nn), x);
         nn_forward(nn);
         size_t q = to.cols;
         for (size_t j = 0; j < q; ++j) {
-            float d = MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(y, 0, j);
+            float d = ROW_AT(NN_OUTPUT(nn), j) - ROW_AT(y, j);
             c += d*d;
         }
     }
@@ -419,18 +424,18 @@ NN nn_backprop(Region *r, NN nn, Mat ti, Mat to)
     // k - previous activation
 
     for (size_t i = 0; i < n; ++i) {
-        mat_copy(NN_INPUT(nn), mat_row(ti, i));
+        row_copy(NN_INPUT(nn), mat_row(ti, i));
         nn_forward(nn);
 
         for (size_t j = 0; j < nn.arch_count; ++j) {
-            mat_fill(g.as[j], 0);
+            row_fill(g.as[j], 0);
         }
 
         for (size_t j = 0; j < to.cols; ++j) {
 #ifdef NN_BACKPROP_TRADITIONAL
-            MAT_AT(NN_OUTPUT(g), 0, j) = 2*(MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(to, i, j));
+            ROW_AT(NN_OUTPUT(g), j) = 2*(ROW_AT(NN_OUTPUT(nn), j) - MAT_AT(to, i, j));
 #else
-            MAT_AT(NN_OUTPUT(g), 0, j) = MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(to, i, j);
+            ROW_AT(NN_OUTPUT(g), j) = ROW_AT(NN_OUTPUT(nn), j) - MAT_AT(to, i, j);
 #endif // NN_BACKPROP_TRADITIONAL
         }
 
@@ -442,17 +447,17 @@ NN nn_backprop(Region *r, NN nn, Mat ti, Mat to)
 
         for (size_t l = nn.arch_count-1; l > 0; --l) {
             for (size_t j = 0; j < nn.as[l].cols; ++j) {
-                float a = MAT_AT(nn.as[l], 0, j);
-                float da = MAT_AT(g.as[l], 0, j);
+                float a = ROW_AT(nn.as[l], j);
+                float da = ROW_AT(g.as[l], j);
                 float qa = dactf(a, NN_ACT);
-                MAT_AT(g.bs[l-1], 0, j) += s*da*qa;
+                ROW_AT(g.bs[l-1], j) += s*da*qa;
                 for (size_t k = 0; k < nn.as[l-1].cols; ++k) {
                     // j - weight matrix col
                     // k - weight matrix row
-                    float pa = MAT_AT(nn.as[l-1], 0, k);
+                    float pa = ROW_AT(nn.as[l-1], k);
                     float w = MAT_AT(nn.ws[l-1], k, j);
                     MAT_AT(g.ws[l-1], k, j) += s*da*qa*pa;
-                    MAT_AT(g.as[l-1], 0, k) += s*da*qa*w;
+                    ROW_AT(g.as[l-1], k) += s*da*qa*w;
                 }
             }
         }
@@ -464,10 +469,8 @@ NN nn_backprop(Region *r, NN nn, Mat ti, Mat to)
                 MAT_AT(g.ws[i], j, k) /= n;
             }
         }
-        for (size_t j = 0; j < g.bs[i].rows; ++j) {
-            for (size_t k = 0; k < g.bs[i].cols; ++k) {
-                MAT_AT(g.bs[i], j, k) /= n;
-            }
+        for (size_t k = 0; k < g.bs[i].cols; ++k) {
+            ROW_AT(g.bs[i], k) /= n;
         }
     }
 
@@ -491,13 +494,11 @@ NN nn_finite_diff(Region *r, NN nn, Mat ti, Mat to, float eps)
             }
         }
 
-        for (size_t j = 0; j < nn.bs[i].rows; ++j) {
-            for (size_t k = 0; k < nn.bs[i].cols; ++k) {
-                saved = MAT_AT(nn.bs[i], j, k);
-                MAT_AT(nn.bs[i], j, k) += eps;
-                MAT_AT(g.bs[i], j, k) = (nn_cost(nn, ti, to) - c)/eps;
-                MAT_AT(nn.bs[i], j, k) = saved;
-            }
+        for (size_t k = 0; k < nn.bs[i].cols; ++k) {
+            saved = ROW_AT(nn.bs[i], k);
+            ROW_AT(nn.bs[i], k) += eps;
+            ROW_AT(g.bs[i], k) = (nn_cost(nn, ti, to) - c)/eps;
+            ROW_AT(nn.bs[i], k) = saved;
         }
     }
 
@@ -513,10 +514,8 @@ void nn_learn(NN nn, NN g, float rate)
             }
         }
 
-        for (size_t j = 0; j < nn.bs[i].rows; ++j) {
-            for (size_t k = 0; k < nn.bs[i].cols; ++k) {
-                MAT_AT(nn.bs[i], j, k) -= rate*MAT_AT(g.bs[i], j, k);
-            }
+        for (size_t k = 0; k < nn.bs[i].cols; ++k) {
+            ROW_AT(nn.bs[i], k) -= rate*ROW_AT(g.bs[i], k);
         }
     }
 }
@@ -552,14 +551,14 @@ void batch_process(Region *r, Batch *b, size_t batch_size, NN nn, Mat t, float r
         .rows = size,
         .cols = NN_INPUT(nn).cols,
         .stride = t.stride,
-        .es = &MAT_AT(t, b->begin, 0),
+        .elements = &MAT_AT(t, b->begin, 0),
     };
 
     Mat batch_to = {
         .rows = size,
         .cols = NN_OUTPUT(nn).cols,
         .stride = t.stride,
-        .es = &MAT_AT(t, b->begin, batch_ti.cols),
+        .elements = &MAT_AT(t, b->begin, batch_ti.cols),
     };
 
     NN g = nn_backprop(r, nn, batch_ti, batch_to);
@@ -599,6 +598,26 @@ void *region_alloc(Region *r, size_t size_bytes)
     void *result = &r->words[r->size];
     r->size += size_words;
     return result;
+}
+
+Mat row_as_mat(Row row)
+{
+    return (Mat) {
+        .rows = 1,
+        .cols = row.cols,
+        .stride = row.cols,
+        .elements = row.elements,
+    };
+}
+
+Row row_slice(Row row, size_t i, size_t cols)
+{
+    NN_ASSERT(i < row.cols);
+    NN_ASSERT(i + cols <= row.cols);
+    return (Row) {
+        .cols = cols,
+        .elements = &ROW_AT(row, i),
+    };
 }
 
 #endif // NN_IMPLEMENTATION

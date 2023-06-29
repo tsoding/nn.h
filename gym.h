@@ -123,7 +123,7 @@ void gym_render_nn(NN nn, Gym_Rect r)
                 }
             }
             if (l > 0) {
-                high_color.a = floorf(255.f*sigmoidf(MAT_AT(nn.bs[l-1], 0, i)));
+                high_color.a = floorf(255.f*sigmoidf(ROW_AT(nn.bs[l-1], i)));
                 DrawCircle(cx1, cy1, neuron_radius, ColorAlphaBlend(low_color, high_color, WHITE));
             } else {
                 DrawCircle(cx1, cy1, neuron_radius, GRAY);
@@ -184,7 +184,7 @@ void gym_render_nn_activations_heatmap(NN nn, Gym_Rect r)
 
     gym_layout_begin(GLO_VERT, r, nn.arch_count, 20);
     for (size_t i = 0; i < nn.arch_count; ++i) {
-        gym_render_mat_as_heatmap(nn.as[i], gym_layout_slot(), max_width);
+        gym_render_mat_as_heatmap(row_as_mat(nn.as[i]), gym_layout_slot(), max_width);
     }
     gym_layout_end();
 }
@@ -258,10 +258,10 @@ void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, si
     uint32_t *pixels_u32 = pixels;
     for (size_t y = 0; y < height; ++y) {
         for (size_t x = 0; x < width; ++x) {
-            MAT_AT(NN_INPUT(nn), 0, 0) = (float)x/(float)(width - 1);
-            MAT_AT(NN_INPUT(nn), 0, 1) = (float)y/(float)(height - 1);
+            ROW_AT(NN_INPUT(nn), 0) = (float)x/(float)(width - 1);
+            ROW_AT(NN_INPUT(nn), 1) = (float)y/(float)(height - 1);
             nn_forward(nn);
-            float a = MAT_AT(NN_OUTPUT(nn), 0, 0);
+            float a = ROW_AT(NN_OUTPUT(nn), 0);
             if (a < low) a = low;
             if (a > high) a = high;
             uint32_t pixel = (a + low)/(high - low)*255.f;

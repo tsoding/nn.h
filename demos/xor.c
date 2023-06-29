@@ -17,10 +17,10 @@ void verify_nn_gate(Font font, NN nn, Gym_Rect r)
     float pad = r.h*0.03;
     for (size_t i = 0; i < 2; ++i) {
         for (size_t j = 0; j < 2; ++j) {
-            MAT_AT(NN_INPUT(nn), 0, 0) = i;
-            MAT_AT(NN_INPUT(nn), 0, 1) = j;
+            ROW_AT(NN_INPUT(nn), 0) = i;
+            ROW_AT(NN_INPUT(nn), 1) = j;
             nn_forward(nn);
-            snprintf(buffer, sizeof(buffer), "%zu @ %zu == %f", i, j, MAT_AT(NN_OUTPUT(nn), 0, 0));
+            snprintf(buffer, sizeof(buffer), "%zu @ %zu == %f", i, j, ROW_AT(NN_OUTPUT(nn), 0));
             DrawTextEx(font, buffer, CLITERAL(Vector2){r.x, r.y + (i*2 + j)*(s + pad)}, s, 0, WHITE);
         }
     }
@@ -44,14 +44,14 @@ int main(void)
         .rows = t.rows,
         .cols = 2,
         .stride = t.stride,
-        .es = &MAT_AT(t, 0, 0),
+        .elements = &MAT_AT(t, 0, 0),
     };
 
     Mat to = {
         .rows = t.rows,
         .cols = 1,
         .stride = t.stride,
-        .es = &MAT_AT(t, 0, ti.cols),
+        .elements = &MAT_AT(t, 0, ti.cols),
     };
 
     NN nn = nn_alloc(NULL, arch, ARRAY_LEN(arch));
