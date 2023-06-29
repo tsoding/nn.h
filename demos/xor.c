@@ -40,20 +40,6 @@ int main(void)
         }
     }
 
-    Mat ti = {
-        .rows = t.rows,
-        .cols = 2,
-        .stride = t.stride,
-        .elements = &MAT_AT(t, 0, 0),
-    };
-
-    Mat to = {
-        .rows = t.rows,
-        .cols = 1,
-        .stride = t.stride,
-        .elements = &MAT_AT(t, 0, ti.cols),
-    };
-
     NN nn = nn_alloc(NULL, arch, ARRAY_LEN(arch));
     nn_rand(nn, -1, 1);
 
@@ -82,10 +68,10 @@ int main(void)
         }
 
         for (size_t i = 0; i < epochs_per_frame && !paused && epoch < max_epoch; ++i) {
-            NN g = nn_backprop(&temp, nn, ti, to);
+            NN g = nn_backprop(&temp, nn, t);
             nn_learn(nn, g, rate);
             epoch += 1;
-            da_append(&plot, nn_cost(nn, ti, to));
+            da_append(&plot, nn_cost(nn, t));
         }
 
         BeginDrawing();
@@ -107,7 +93,7 @@ int main(void)
             gym_layout_end();
 
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f, Temporary Memory: %zu bytes", epoch, max_epoch, rate, nn_cost(nn, ti, to), region_occupied_bytes(&temp));
+            snprintf(buffer, sizeof(buffer), "Epoch: %zu/%zu, Rate: %f, Cost: %f, Temporary Memory: %zu bytes", epoch, max_epoch, rate, nn_cost(nn, t), region_occupied_bytes(&temp));
             DrawTextEx(font, buffer, CLITERAL(Vector2){}, h*0.04, 0, WHITE);
         }
         EndDrawing();

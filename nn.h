@@ -64,6 +64,8 @@ Region region_alloc_alloc(size_t capacity_bytes);
 void *region_alloc(Region *r, size_t size_bytes);
 #define region_reset(r) (NN_ASSERT((r) != NULL), (r)->size = 0)
 #define region_occupied_bytes(r) (NN_ASSERT((r) != NULL), (r)->size*sizeof(*(r)->words))
+#define region_save(r) (NN_ASSERT((r) != NULL), (r)->size)
+#define region_rewind(r, s) (NN_ASSERT((r) != NULL), (r)->size = s)
 
 typedef struct {
     size_t rows;
@@ -126,9 +128,9 @@ void nn_rand(NN nn, float low, float high);
 //
 // Something more like `Mat nn_forward(NN nn, Mat in)`
 void nn_forward(NN nn);
-float nn_cost(NN nn, Mat ti, Mat to);
-NN nn_finite_diff(Region *r, NN nn, Mat ti, Mat to, float eps);
-NN nn_backprop(Region *r, NN nn, Mat ti, Mat to);
+float nn_cost(NN nn, Mat t);
+NN nn_finite_diff(Region *r, NN nn, Mat t, float eps);
+NN nn_backprop(Region *r, NN nn, Mat t);
 void nn_learn(NN nn, NN g, float rate);
 
 typedef struct {
@@ -386,20 +388,20 @@ void nn_forward(NN nn)
     }
 }
 
-float nn_cost(NN nn, Mat ti, Mat to)
+float nn_cost(NN nn, Mat t)
 {
-    NN_ASSERT(ti.rows == to.rows);
-    NN_ASSERT(to.cols == NN_OUTPUT(nn).cols);
-    size_t n = ti.rows;
+    NN_ASSERT(NN_INPUT(nn).cols + NN_OUTPUT(nn).cols == t.cols);
+    size_t n = t.rows;
 
     float c = 0;
     for (size_t i = 0; i < n; ++i) {
-        Row x = mat_row(ti, i);
-        Row y = mat_row(to, i);
+        Row row = mat_row(t, i);
+        Row x = row_slice(row, 0, NN_INPUT(nn).cols);
+        Row y = row_slice(row, NN_INPUT(nn).cols, NN_OUTPUT(nn).cols);
 
         row_copy(NN_INPUT(nn), x);
         nn_forward(nn);
-        size_t q = to.cols;
+        size_t q = y.cols;
         for (size_t j = 0; j < q; ++j) {
             float d = ROW_AT(NN_OUTPUT(nn), j) - ROW_AT(y, j);
             c += d*d;
@@ -409,11 +411,10 @@ float nn_cost(NN nn, Mat ti, Mat to)
     return c/n;
 }
 
-NN nn_backprop(Region *r, NN nn, Mat ti, Mat to)
+NN nn_backprop(Region *r, NN nn, Mat t)
 {
-    NN_ASSERT(ti.rows == to.rows);
-    size_t n = ti.rows;
-    NN_ASSERT(NN_OUTPUT(nn).cols == to.cols);
+    size_t n = t.rows;
+    NN_ASSERT(NN_INPUT(nn).cols + NN_OUTPUT(nn).cols == t.cols);
 
     NN g = nn_alloc(r, nn.arch, nn.arch_count);
     nn_zero(g);
@@ -424,18 +425,22 @@ NN nn_backprop(Region *r, NN nn, Mat ti, Mat to)
     // k - previous activation
 
     for (size_t i = 0; i < n; ++i) {
-        row_copy(NN_INPUT(nn), mat_row(ti, i));
+        Row row = mat_row(t, i);
+        Row in = row_slice(row, 0, NN_INPUT(nn).cols);
+        Row out = row_slice(row, NN_INPUT(nn).cols, NN_OUTPUT(nn).cols);
+
+        row_copy(NN_INPUT(nn), in);
         nn_forward(nn);
 
         for (size_t j = 0; j < nn.arch_count; ++j) {
             row_fill(g.as[j], 0);
         }
 
-        for (size_t j = 0; j < to.cols; ++j) {
+        for (size_t j = 0; j < out.cols; ++j) {
 #ifdef NN_BACKPROP_TRADITIONAL
-            ROW_AT(NN_OUTPUT(g), j) = 2*(ROW_AT(NN_OUTPUT(nn), j) - MAT_AT(to, i, j));
+            ROW_AT(NN_OUTPUT(g), j) = 2*(ROW_AT(NN_OUTPUT(nn), j) - ROW_AT(out, j));
 #else
-            ROW_AT(NN_OUTPUT(g), j) = ROW_AT(NN_OUTPUT(nn), j) - MAT_AT(to, i, j);
+            ROW_AT(NN_OUTPUT(g), j) = ROW_AT(NN_OUTPUT(nn), j) - ROW_AT(out, j);
 #endif // NN_BACKPROP_TRADITIONAL
         }
 
@@ -477,10 +482,10 @@ NN nn_backprop(Region *r, NN nn, Mat ti, Mat to)
     return g;
 }
 
-NN nn_finite_diff(Region *r, NN nn, Mat ti, Mat to, float eps)
+NN nn_finite_diff(Region *r, NN nn, Mat t, float eps)
 {
     float saved;
-    float c = nn_cost(nn, ti, to);
+    float c = nn_cost(nn, t);
 
     NN g = nn_alloc(r, nn.arch, nn.arch_count);
 
@@ -489,7 +494,7 @@ NN nn_finite_diff(Region *r, NN nn, Mat ti, Mat to, float eps)
             for (size_t k = 0; k < nn.ws[i].cols; ++k) {
                 saved = MAT_AT(nn.ws[i], j, k);
                 MAT_AT(nn.ws[i], j, k) += eps;
-                MAT_AT(g.ws[i], j, k) = (nn_cost(nn, ti, to) - c)/eps;
+                MAT_AT(g.ws[i], j, k) = (nn_cost(nn, t) - c)/eps;
                 MAT_AT(nn.ws[i], j, k) = saved;
             }
         }
@@ -497,7 +502,7 @@ NN nn_finite_diff(Region *r, NN nn, Mat ti, Mat to, float eps)
         for (size_t k = 0; k < nn.bs[i].cols; ++k) {
             saved = ROW_AT(nn.bs[i], k);
             ROW_AT(nn.bs[i], k) += eps;
-            ROW_AT(g.bs[i], k) = (nn_cost(nn, ti, to) - c)/eps;
+            ROW_AT(g.bs[i], k) = (nn_cost(nn, t) - c)/eps;
             ROW_AT(nn.bs[i], k) = saved;
         }
     }
@@ -547,23 +552,17 @@ void batch_process(Region *r, Batch *b, size_t batch_size, NN nn, Mat t, float r
         size = t.rows - b->begin;
     }
 
-    Mat batch_ti = {
+    // TODO: introduce similar to row_slice operation but for Mat that will give you subsequence of rows
+    Mat batch_t = {
         .rows = size,
-        .cols = NN_INPUT(nn).cols,
+        .cols = t.cols,
         .stride = t.stride,
         .elements = &MAT_AT(t, b->begin, 0),
     };
 
-    Mat batch_to = {
-        .rows = size,
-        .cols = NN_OUTPUT(nn).cols,
-        .stride = t.stride,
-        .elements = &MAT_AT(t, b->begin, batch_ti.cols),
-    };
-
-    NN g = nn_backprop(r, nn, batch_ti, batch_to);
+    NN g = nn_backprop(r, nn, batch_t);
     nn_learn(nn, g, rate);
-    b->cost += nn_cost(nn, batch_ti, batch_to);
+    b->cost += nn_cost(nn, batch_t);
     b->begin += batch_size;
 
     if (b->begin >= t.rows) {
