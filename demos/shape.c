@@ -65,7 +65,7 @@ void random_rect(Olivec_Canvas oc)
     olivec_rect(oc, x, y, w, h, FOREGROUND_COLOR);
 }
 
-void canvas_to_row(Olivec_Canvas oc, Row row)
+void canvas_to_row(Row row, Olivec_Canvas oc)
 {
     NN_ASSERT(oc.width*oc.height == row.cols);
     for (size_t y = 0; y < oc.height; ++y){
@@ -100,7 +100,7 @@ Mat generate_samples(Region *r, size_t samples)
                 case SHAPE_RECT:   olivec_rect(oc, x, y, w, h, FOREGROUND_COLOR);  break;
                 default: assert(0 && "unreachable");
                 }
-                canvas_to_row(oc, in);
+                canvas_to_row(in, oc);
                 row_fill(out, 0);
                 ROW_AT(out, j) = 1.0f;
             }
@@ -228,7 +228,7 @@ int main(void)
                 gym_layout_end();
                 gym_layout_begin(GLO_VERT, gym_layout_slot(), 2, 10);
                     gym_drawable_canvas(canvas, gym_layout_slot());
-                    canvas_to_row(canvas, NN_INPUT(nn));
+                    canvas_to_row(NN_INPUT(nn), canvas);
                     nn_forward(nn);
                     {
                         Gym_Rect slot = gym_layout_slot();
