@@ -109,25 +109,6 @@ Mat generate_samples(Region *r, size_t samples)
     return t;
 }
 
-Gym_Rect gym_fit_square(Gym_Rect r)
-{
-    if (r.w < r.h) {
-        return (Gym_Rect) {
-            .x = r.x,
-            .y = r.y + r.h/2 - r.w/2,
-            .w = r.w,
-            .h = r.w,
-        };
-    } else {
-        return (Gym_Rect) {
-            .x = r.x + r.w/2 - r.h/2,
-            .y = r.y,
-            .w = r.h,
-            .h = r.h,
-        };
-    }
-}
-
 void gym_drawable_canvas(Olivec_Canvas oc, Gym_Rect r)
 {
     NN_ASSERT(oc.width == oc.height && "We support only square canvases");
