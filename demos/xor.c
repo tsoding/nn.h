@@ -87,7 +87,7 @@ int main(void)
             r.y = h/2 - r.h/2;
 
             gym_layout_begin(GLO_HORZ, r, 3, 10);
-                gym_plot(plot, gym_layout_slot());
+                gym_plot(plot, gym_layout_slot(), RED);
                 gym_render_nn(nn, gym_layout_slot());
                 verify_nn_gate(font, nn, gym_layout_slot());
             gym_layout_end();

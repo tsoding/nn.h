@@ -152,7 +152,7 @@ int main(void)
             r.y = h/2 - r.h/2;
 
             gym_layout_begin(GLO_HORZ, r, 3, 10);
-                gym_plot(plot, gym_layout_slot());
+                gym_plot(plot, gym_layout_slot(), RED);
                 gym_layout_begin(GLO_VERT, gym_layout_slot(), 2, 0);
                     gym_render_nn(nn, gym_layout_slot());
                     gym_render_nn_weights_heatmap(nn, gym_layout_slot());

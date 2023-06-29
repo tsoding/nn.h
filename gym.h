@@ -81,7 +81,7 @@ void gym_render_nn(NN nn, Gym_Rect r);
 void gym_render_mat_as_heatmap(Mat m, Gym_Rect r, size_t max_width);
 void gym_render_nn_weights_heatmap(NN nn, Gym_Rect r);
 void gym_render_nn_activations_heatmap(NN nn, Gym_Rect r);
-void gym_plot(Gym_Plot plot, Gym_Rect r);
+void gym_plot(Gym_Plot plot, Gym_Rect r, Color c);
 void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh);
 void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, size_t stride, float low, float high);
 
@@ -189,7 +189,7 @@ void gym_render_nn_activations_heatmap(NN nn, Gym_Rect r)
     gym_layout_end();
 }
 
-void gym_plot(Gym_Plot plot, Gym_Rect r)
+void gym_plot(Gym_Plot plot, Gym_Rect r, Color c)
 {
     float min = FLT_MAX, max = FLT_MIN;
     for (size_t i = 0; i < plot.count; ++i) {
@@ -205,12 +205,18 @@ void gym_plot(Gym_Plot plot, Gym_Rect r)
         float y1 = r.y + (1 - (plot.items[i] - min)/(max - min))*r.h;
         float x2 = r.x + (float)r.w/n*(i+1);
         float y2 = r.y + (1 - (plot.items[i+1] - min)/(max - min))*r.h;
-        DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, r.h*0.005, RED);
+        DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, r.h*0.005, c);
     }
 
     float y0 = r.y + (1 - (0 - min)/(max - min))*r.h;
     DrawLineEx((Vector2){r.x + 0, y0}, (Vector2){r.x + r.w - 1, y0}, r.h*0.005, WHITE);
     DrawText("0", r.x + 0, y0 - r.h*0.04, r.h*0.04, WHITE);
+
+    if (plot.count > 0) {
+        char buffer[64];
+        snprintf(buffer, sizeof(buffer), "%f", plot.items[plot.count-1]);
+        DrawText(buffer, r.x, r.y, r.h*0.08, WHITE);
+    }
 }
 
 void gym_slider(float *value, bool *dragging, float rx, float ry, float rw, float rh)
