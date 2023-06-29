@@ -60,6 +60,7 @@ void gym_layout_stack_push(Gym_Layout_Stack *ls, Gym_Layout_Orient orient, Gym_R
 
 static Gym_Layout_Stack default_gym_layout_stack = {0};
 
+Gym_Rect gym_root(void);
 #define gym_layout_begin(orient, rect, count, gap) gym_layout_stack_push(&default_gym_layout_stack, orient, rect, count, gap)
 #define gym_layout_end() gym_layout_stack_pop(&default_gym_layout_stack)
 // TODO: allow a single slot to take up several slots
@@ -327,6 +328,14 @@ void gym_layout_stack_push(Gym_Layout_Stack *ls, Gym_Layout_Orient orient, Gym_R
     l.count = count;
     l.gap = gap;
     da_append(ls, l);
+}
+
+Gym_Rect gym_root(void)
+{
+    Gym_Rect root = {0};
+    root.w = GetRenderWidth();
+    root.h = GetRenderHeight();
+    return root;
 }
 
 #endif // GYM_IMPLEMENTATION

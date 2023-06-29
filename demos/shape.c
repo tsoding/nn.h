@@ -160,14 +160,6 @@ void gym_drawable_canvas(Olivec_Canvas oc, Gym_Rect r)
     }
 }
 
-Gym_Rect gym_root(void)
-{
-    Gym_Rect root = {0};
-    root.w = GetRenderWidth();
-    root.h = GetRenderHeight();
-    return root;
-}
-
 void display_training_data(Mat t)
 {
     for (size_t i = 0; i < t.rows; ++i) {
