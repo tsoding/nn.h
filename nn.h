@@ -70,7 +70,6 @@ void *region_alloc(Region *r, size_t size_bytes);
 typedef struct {
     size_t rows;
     size_t cols;
-    size_t stride;
     float *elements;
 } Mat;
 
@@ -89,7 +88,7 @@ Row row_slice(Row row, size_t i, size_t cols);
 #define row_print(row, name, padding) mat_print(row_as_mat(row), name, padding)
 #define row_copy(dst, src) mat_copy(row_as_mat(dst), row_as_mat(src))
 
-#define MAT_AT(m, i, j) (m).elements[(i)*(m).stride + (j)]
+#define MAT_AT(m, i, j) (m).elements[(i)*(m).cols + (j)]
 
 Mat mat_alloc(Region *r, size_t rows, size_t cols);
 void mat_fill(Mat m, float x);
@@ -194,7 +193,6 @@ Mat mat_alloc(Region *r, size_t rows, size_t cols)
     Mat m;
     m.rows = rows;
     m.cols = cols;
-    m.stride = cols;
     m.elements = region_alloc(r, sizeof(*m.elements)*rows*cols);
     NN_ASSERT(m.elements != NULL);
     return m;
@@ -520,7 +518,6 @@ void batch_process(Region *r, Batch *b, size_t batch_size, NN nn, Mat t, float r
     Mat batch_t = {
         .rows = size,
         .cols = t.cols,
-        .stride = t.stride,
         .elements = &MAT_AT(t, b->begin, 0),
     };
 
@@ -568,7 +565,6 @@ Mat row_as_mat(Row row)
     return (Mat) {
         .rows = 1,
         .cols = row.cols,
-        .stride = row.cols,
         .elements = row.elements,
     };
 }
