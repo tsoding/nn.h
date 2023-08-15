@@ -400,9 +400,9 @@ NN nn_backprop(Region *r, NN nn, Mat t)
 
         for (size_t j = 0; j < out.cols; ++j) {
 #ifdef NN_BACKPROP_TRADITIONAL
-            ROW_AT(NN_OUTPUT(g), j) = 2*(ROW_AT(NN_OUTPUT(nn), j) - ROW_AT(out, j));
+            ROW_AT(NN_OUTPUT(g), j) = 2.0f/n*(ROW_AT(NN_OUTPUT(nn), j) - ROW_AT(out, j));
 #else
-            ROW_AT(NN_OUTPUT(g), j) = ROW_AT(NN_OUTPUT(nn), j) - ROW_AT(out, j);
+            ROW_AT(NN_OUTPUT(g), j) = 1.0f/n*(ROW_AT(NN_OUTPUT(nn), j) - ROW_AT(out, j));
 #endif // NN_BACKPROP_TRADITIONAL
         }
 
@@ -427,17 +427,6 @@ NN nn_backprop(Region *r, NN nn, Mat t)
                     ROW_AT(g.as[l-1], k) += s*da*qa*w;
                 }
             }
-        }
-    }
-
-    for (size_t i = 0; i < g.arch_count-1; ++i) {
-        for (size_t j = 0; j < g.ws[i].rows; ++j) {
-            for (size_t k = 0; k < g.ws[i].cols; ++k) {
-                MAT_AT(g.ws[i], j, k) /= n;
-            }
-        }
-        for (size_t k = 0; k < g.bs[i].cols; ++k) {
-            ROW_AT(g.bs[i], k) /= n;
         }
     }
 

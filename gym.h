@@ -272,7 +272,7 @@ void gym_nn_image_grayscale(NN nn, void *pixels, size_t width, size_t height, si
             float a = ROW_AT(NN_OUTPUT(nn), 0);
             if (a < low) a = low;
             if (a > high) a = high;
-            uint32_t pixel = (a + low)/(high - low)*255.f;
+            uint32_t pixel = (a - low)/(high - low)*255.f;
             pixels_u32[y*stride + x] = (0xFF<<(8*3))|(pixel<<(8*2))|(pixel<<(8*1))|(pixel<<(8*0));
         }
     }
